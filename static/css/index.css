@@ -1,0 +1,15 @@
+#calculator_container {
+    display: flex;
+}
+
+.box_element {
+    border: solid black 1px;
+    background-color: cadetblue;
+    width: 10px;
+    height: 10px;
+}
+
+#this_box {
+    min-width: 15px;
+    min-height: 20px;
+}
