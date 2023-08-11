@@ -1,80 +1,253 @@
+/*                                                                      body */
 body {
     margin: 0px;
 }
 
-#calc_container {
+/*                                                                      header */
+#header_container {
+    display: flex;
+    justify-content: space-between;
+}
+/*                                                    >errors< */
+#errors {
+    font-family: 'Tektur', cursive;
+    font-size: 2rem;
+    color: rgb(126, 74, 74);
+    margin-left: 2rem;
+    margin-top: 0.5rem;
+}
+/*                                                    >timer< */
+#timer_container {
+    display: flex;
+    width: 8rem;
+}
+
+#timer {
+    font-family: 'Tektur', cursive;
+    font-size: 3rem;
+    color: grey;
+}
+/*                                                    >level< */
+#level {
+    font-family: 'Tektur', cursive;
+    font-size: 2rem;
+    color: rgb(81, 129, 97);
+    margin-right: 2rem;
+    margin-top: 0.5rem;
+}
+
+/*                                                                      equation */
+#equation_container {
+    display: flex;
+    justify-content: center;
+    background-color: rgb(243, 243, 243);
+}
+
+#equation {
+    font-family: 'Tektur', cursive;
+    font-size: 3rem;
+}
+
+/*                                                                      calculator */
+/* the div that will contain the whole calculator */
+#calculator_container {
     display: flex;
     justify-content: center;
 }
 
-#calc_grid {
-    display: grid;
-    grid-template-rows: 4;
-    grid-template-columns: 1fr 1fr 1fr 1fr;
-    width: 90vmin;
-    height: 90vmin;
+/* the calculator object */
+#calculator {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+
+    width: 100vmin;
+    height: 80vmin;
+
     background-color: aliceblue;
     border: solid gainsboro 1px;
-    border-radius: 10%;
+    border-radius: 0%;
 }
-
-.calc_button {
-    border: solid black 1px;
-
-    width: 100%;
-    height: 100%;
-    text-align: center;
-
-    background-color: cadetblue;
-}
-
-#this_box {
-    min-width: 15px;
-    min-height: 20px;
-    background-color: blueviolet;
-}
-
-#el1 {
-    grid-column: 1 / span 1;
-    grid-row: 1 / span 1;
-    background-color: aquamarine;
-}
-
-#el2 {
-    grid-column: 2 / span 1;
-    grid-row: 2 / span 1;
-    background-color: brown;
-}
-
-#el3 {
-    grid-column: 3 / span 1;
-    grid-row: 3 / span 1;
-    background-color: chocolate;
-}
-
-#el4 {
-    grid-column: 4 / span 1;
-    grid-row: 4 / span 1;
-}
-/*-----------------------------*/
+/*                                                                      screen */
 
 #screen_container {
     display: flex;
     justify-content: center;
+    align-items: center;
+
+    width: 100%;
+    height: 20%;
+    flex-shrink: 0;
+
+    background-color: rgb(235, 235, 235);
 }
 
-#equation_container {
-    background-color: rgb(135, 143, 114);
-    width: 10%;
-    padding-right: 2rem;
-    padding-left: 2rem;
-    border-radius: 3%;
-    border: solid rgb(117, 124, 98) 2px;
+#screen {
     display: flex;
     justify-content: center;
+    align-items: center;
+
+    width: 50%;
+    height: 80%;
+
+    font-family: 'Tektur', cursive;
+    font-size: 3rem;
+
+    color:rgb(95, 94, 94);
 }
 
-#current_equation {
-    font-family: 'Tektur', cursive;
-    font-size: 1.5rem;
+/*                                                                      buttons */
+#buttons_container {
+    display: grid;
+
+    width: 100%;
+    min-height: 80%;
+    max-height: 80%;
+
+    background-color: rgb(129, 129, 138);
+    border: solid gainsboro 1px;
+}
+
+.button {
+    border: solid rgb(0, 0, 0) 1px;
+
+    text-align: center;
+
+    background-color: rgb(150, 199, 201);
+
+    font-size: 3rem;
+    color:rgb(78, 78, 78);
+}
+
+/*                                                                      intro modal */
+#intro_modal {
+    width: 100%;
+    height: 40%;
+
+    margin-top: 15%;
+
+    padding: 0;
+    border: 0;
+
+    background-color: rgb(43, 80, 110);/*---------------*/
+}
+
+#intro_container {
+    display: flex;
+    justify-content: space-between;
+
+    width: 100%;
+    height: 100%;
+
+    background-color: rgb(231, 236, 240);
+}
+
+#message_container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+
+    margin-left: 2%;
+    margin-right: 2%;
+}
+
+#intro_modal::backdrop {
+    background-color: rgba(95, 95, 95, 0.664);
+}
+
+#intro_image {
+    max-width: 25%;
+    object-fit: contain;
+}
+
+#message {
+    font-size: 0.9rem;
+}
+
+#btn_start {
+    font-size: 2rem;
+    
+    border: solid black 1px;
+    border-radius: 2px;
+    box-shadow: none;
+
+    background-color: rgb(220, 234, 245);
+}
+
+/* on portrait-ish devices: */
+@media screen and (max-aspect-ratio: 0.9) {
+
+    /* make the intro modal height higher */
+    #intro_modal {
+        height: 80%;
+    }
+
+    /* the intro container who holds the contents of the modal will now be ordered 
+    as a column */
+    #intro_container {
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    /* the intro image's size will now change its relative sizing rules based on the
+    new shape of the modal */
+    #intro_image {
+        max-width: 100%;
+        max-height: 40%;
+    }
+
+    /* the message container which holds the text and the button will vertically center
+    its children */
+    #message_container {
+        align-items: center;
+    }
+
+    /* the button will be bigger since we asume this is most likely a mobile device */
+    #btn_start {
+        min-height: 30%;
+        width: 90%;
+    }
+    
+}
+
+/*                                                                      countdown modal */
+#countdown_modal {
+    background-color: transparent;
+    border: none;
+    overflow: hidden;
+}
+
+#countdown_modal::backdrop {
+    background-color: transparent;
+}
+
+#countdown {
+    display: flex;
+    text-align: center;
+
+    font-size: 20rem;
+}
+
+/*                                                                      name modal */
+
+#name_modal {
+    background-color: transparent;
+    border: none;
+    overflow: hidden;
+    
+    width: 100%;
+
+    padding: 0 0 0 0;
+    margin-top: 10%;
+}
+
+#name_container {
+    display: flex;
+    justify-content: center;
+
+    height: 1.5rem;
+
+    background-color: white;
 }
