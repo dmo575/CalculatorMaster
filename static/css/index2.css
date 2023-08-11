@@ -1,0 +1,114 @@
+/*                                                                      body */
+body {
+    margin: 0px;
+}
+
+/*                                                                      timer */
+#timer_container {
+    display: flex;
+    justify-content: center;
+}
+
+#timer_inner_container {
+    display: flex;
+    width: 4.2rem;
+}
+
+#timer {
+    font-family: 'Tektur', cursive;
+    font-size: 1.5rem;
+}
+
+/*                                                                      equation */
+#equation_container {
+    display: flex;
+    justify-content: center;
+}
+
+#equation {
+    font-family: 'Tektur', cursive;
+    font-size: 1.5rem;
+}
+
+/*                                                                      calculator */
+/* the div that will contain the whole calculator */
+#calculator_container {
+    display: flex;
+    justify-content: center;
+}
+
+/* the calculator object */
+#calculator {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    /* the dimensions of the calculator in relation to the screen'
+    shortest len */
+    /* this ensures that the calculator sis fully shown on the
+    screen no matter the type */
+    width: 90vmin;
+    height: 90vmin;
+
+    background-color: aliceblue;
+    border: solid gainsboro 1px;
+    border-radius: 0%;
+}
+/*                                                                      screen */
+/* note on flex-shrink for screen and buttons containers:
+    I set it to 0 because I want to use the width and marging's
+    percentages to decide how much of the calculator space to
+    take and with flex-shrink to 1 I cannot tell whats going
+    on with the margin. */
+#screen_container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    flex-shrink: 0;
+    margin-top: 5%;
+    width: 100%;
+    height: 20%;
+
+    background-color: rgb(104, 94, 94);
+}
+
+#screen {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    flex-shrink: 0;
+    width: 50%;
+    height: 80%;
+
+    background-color: rgb(182, 189, 146);
+
+    font-family: 'Tektur', cursive;
+    font-size: 3rem;
+}
+
+/*                                                                      buttons */
+#buttons_container {
+    display: grid;
+    flex-shrink: 0;
+    margin-top: 5%;
+    margin-bottom: 5%;
+    width: 90%;
+    height: 65%;
+
+    background-color: aliceblue;
+    border: solid gainsboro 1px;
+    border-radius: 3%;
+}
+
+.button {
+    border: solid black 1px;
+
+    width: 100%;
+    height: 100%;
+    text-align: center;
+
+    background-color: cadetblue;
+}

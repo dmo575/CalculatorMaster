@@ -3,16 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tektur&family=Ubuntu:wght@300&display=swap" rel="stylesheet">
     <link href="/static/css/index.css" rel="stylesheet" type="text/css">
-    <script defer src="/static/js/index.js"></script>
+    <script defer src="/static/js/index.js" type="module"></script>
     <title>Calculator</title>
 </head>
     <body>
-        <div id="calculator_container">
-            <div class="box_element" id="this_box"></div>
-            <div class="box_element"></div>
-            <div class="box_element"></div>
-            <div class="box_element"></div>
+        <div id="screen_container">
+            <div id="equation_container">
+                <p id="current_equation">equation123</p>
+            </div>
+        </div>
+        <div id="calc_container">
+            <div id="calc_grid">
+            </div>
         </div>
     </body>
 </html>
