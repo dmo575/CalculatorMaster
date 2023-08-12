@@ -130,7 +130,7 @@ body {
     padding: 0;
     border: 0;
 
-    background-color: rgb(43, 80, 110);/*---------------*/
+    background-color: rgb(231, 236, 240);
 }
 
 #intro_container {
@@ -140,7 +140,7 @@ body {
     width: 100%;
     height: 100%;
 
-    background-color: rgb(231, 236, 240);
+    /*background-color: rgb(231, 236, 240);*/
 }
 
 #message_container {
@@ -154,6 +154,8 @@ body {
 
 #intro_modal::backdrop {
     background-color: rgba(95, 95, 95, 0.664);
+    background-color: rgba(0, 0, 0, 0.753);
+    opacity: 0;
 }
 
 #intro_image {
@@ -250,4 +252,12 @@ body {
     height: 1.5rem;
 
     background-color: white;
+}
+
+#backdrop {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(51, 51, 51, 0.664);
+    opacity: 0;
 }

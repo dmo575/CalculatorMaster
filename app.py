@@ -9,7 +9,7 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 @app.route("/")
 def hello():
-    return render_template("index2.html")
+    return render_template("index.html")
 
 
 if __name__ == "__main__":

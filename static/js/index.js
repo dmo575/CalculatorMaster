@@ -25,6 +25,7 @@ const countdownModalElement = document.querySelector('#countdown_modal');
 const countdownContainer = document.querySelector('#countdown');
 const nameModal = document.querySelector('#name_modal');
 const nameForm = document.querySelector('#name_form');
+const backdropElement = document.querySelector('#backdrop');
 
 
 // how often we will update the timer UI (miliseconds)
@@ -47,11 +48,16 @@ var errorCount = 0;
 // ----------------------------------------------------------       EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', (event) => {
 
-    //nameModal.showModal();
-
-    introModalElement.showModal();
-    //modalPopUp(introModalElement);
-
+    modalPop3(introModalElement, 1, 200, 100, 400, 200);
+    
+    setTimeout(() => {
+        modalPop3(introModalElement,-1, 200, 100, 200);
+    }, 2000);
+    
+    setTimeout(() => {
+        
+        modalPop2(introModalElement, 1, 200, 100);
+    }, 4000);
     return;
 });
 
@@ -653,13 +659,289 @@ function checkUsername(name) {
 }
 
 // ----------------------------------------------------------       ANIMATIONS
-// modal must have 1 direct children only
-function modalPopUp(modalElement) {
-    // TODO: disable input
-    let children = modalElement.children[0];
+// modal must contain the width and height
+// ideally, children w:h should be relative to modal's w:h, not absolute
+// arguments:
+// dir: 1 to grow from nothing, 0 to shrink onto nothing
+// time: how long will the griw/shrink take (miliseconds)
+// fadeinStart: at what point in the grow/shrink you want the children to start the dafe in/out (miliseconds)
+// 
+function modalPop(modalElement, dir, time, fadeInStart=70) {
 
-    console.log(child);
+    // TODO: disable input
+
+    // animation tick
+    let timeInterval = 10;
+    // keeps track of the sizing progress (%)
+    let sizingProgress = 0;
+    // element's children
+    let children = Array.from(modalElement.children);
+    // gets computed size of the element pre-opening it, meaning its in %
+    let temp = window.getComputedStyle(modalElement).width;
+    let modalInitWidth = parseInt(temp.slice(0, temp.length - 1));
+    temp = window.getComputedStyle(modalElement).height;
+    let modalInitHeight = parseInt(temp.slice(0, temp.length - 1));
+    // will store the current size of the element
+    let modalCurrWidth = 0;
+    let modalCurrHeight = 0;
+    // how much should the size change by each tick
+    let widthIncrement = modalInitWidth / time * timeInterval;
+    let heightIncrement = modalInitHeight / time * timeInterval;
+
+    // set children opacity to start value based on dir
+    let targetOpacity = [];
+    children.forEach((element) => {
+        targetOpacity.push(window.getComputedStyle(element).opacity);
+        element.style.opacity = 0;
+    });
+    
+    modalElement.showModal();
+
+    let interval = setInterval(()=>{
+
+        // modal pop up
+        modalCurrWidth += widthIncrement;
+        modalCurrHeight += heightIncrement;
+
+        modalElement.style.width = `${modalCurrWidth}%`;
+        //modalElement.style.height = `${modalCurrHeight}%`;
+        modalElement.style.height = `${modalInitHeight}%`;
+
+        // update progress percentage
+        sizingProgress = modalCurrHeight / (modalInitHeight / 100);
+
+
+        // if the modal is at least 'fadeInStart'% done resizing
+        if(sizingProgress >= fadeInStart) {
+            
+            children.forEach((element, index) => {
+                // replace 1.0 for target opacity value
+                let opacityIncrement = targetOpacity[index] / (100 - fadeInStart);
+                // the value this elemen's opacity should be at right now
+                let newOpVal = opacityIncrement * (sizingProgress - fadeInStart);
+                element.style.opacity = newOpVal;
+            });
+        }
+
+
+        if(modalCurrWidth >= modalInitWidth) {
+
+            modalElement.style.width = `${modalInitWidth}%`;
+            modalElement.style.height = `${modalInitHeight}%`;
+            clearInterval(interval);
+        }
+
+    }, timeInterval);
 }
+
+// open/close modal animation
+// modal has w:h anc background color
+// takes care of children
+function modalPop2(modalElement, dir, popTime, fadeTime) {
+
+    // just in case
+    dir = dir > 0 ? 1 : -1;
+
+    if(dir > 0) {
+        // if we meant to open the modal we first set opacity to  so that we dont
+        // see it full dimensions for a tick or two
+        modalElement.style.opacity = 0;
+    }
+
+    // get all interactible children and disable them. Add any other element to the list below
+    let interactibles = Array.from(modalElement.querySelectorAll('button, textarea, input'));
+
+    // prevents the scrollbar to show while the pop animation happens.
+    modalElement.style.overflow = 'hidden';
+
+    interactibles.forEach((element) => {
+        element.disabled = true;
+    });
+
+    // we then call open on it. If we meant to open it this is the step and it not
+    // its already openened so it doesnt matter.
+    // we need to always first open it so that the computed values come out int pixel
+    // units. This will allow us to open and close it multiple times without the 
+    // modal breaking due to computed values using two measures (% and px).
+    // he reason for this is that a modal that has not been opened before will
+    // stick to returning properties with the units the way we specified them
+    // in css, but after they have been opened once they will stick to pixels
+    modalElement.showModal();
+
+    // animation tick
+    let timeInterval = 10;
+    // element's children
+    let children = Array.from(modalElement.children);
+    // gets computed size of the element, since its been opened already, units will be px
+    let temp = window.getComputedStyle(modalElement).width;
+    let modalOriginalWidth = parseInt(temp.slice(0, temp.length - 2));
+    temp = window.getComputedStyle(modalElement).height;
+    let modalOriginalHeight = parseInt(temp.slice(0, temp.length - 2));
+
+    let modalCurrWidth = dir == 1 ? 0 : modalOriginalWidth;
+    let modalCurrHeight = dir == 1 ? 0 : modalOriginalHeight;
+    let modalTargetWidth = dir == 1 ? modalOriginalWidth : 0;
+    let modalTargetHeight = dir == 1 ? modalOriginalHeight : 0;
+
+    // how much should the size change by each tick
+    let widthIncrement = modalOriginalWidth / popTime * timeInterval;
+    let heightIncrement = modalOriginalHeight / popTime * timeInterval;
+
+    // save children original opacity and set its start and target values
+    let targetOpacity = [];
+    let originalOpacity = [];
+    children.forEach((element) => {
+
+        originalOpacity.push(window.getComputedStyle(element).opacity);
+
+        if(dir > 0) {
+
+            targetOpacity.push(parseFloat(originalOpacity[originalOpacity.length - 1]));
+            element.style.opacity = 0;
+            return;
+        }
+        targetOpacity.push(0);
+    });
+    
+    // timeout for pop, happens first if opening, second if closing
+    setTimeout(() => {
+
+        // children fade in/out animation
+        let fadeAnimation = setInterval(() => {
+
+            children.forEach((element, index) => {
+
+                let opacityIncrement = originalOpacity[index] / fadeTime * timeInterval;
+
+                element.style.opacity = parseFloat(window.getComputedStyle(element).opacity) + (opacityIncrement * dir);
+            });
+
+            let complete = children.every((element, index) => {
+                // im really proud of this one below rhere: look at it boi look at it
+                return (targetOpacity[index] + (parseFloat(element.style.opacity) * -dir) <= 0);
+            });
+
+            if(complete) {
+
+                // enable all interactible elements back
+                interactibles.forEach((element) => {
+                    element.disabled = false;
+                });
+
+                // note on not deleting in-line style values for the children:
+                // in this case we dont do that because its just avalue from 0
+                // to 1, there is no conflict like % and px as with the modal.
+                // So even if we resize the screen and trigger @media queries
+                // all will be fine
+
+                clearTimeout(fadeAnimation);
+            }
+
+        }, timeInterval);
+
+    }, dir > 0 ? popTime : 0);
+
+    // timeout for face, happens first if closing, second if opening
+    setTimeout(() => {
+
+        
+        // modal pop in/out animation
+        let popAnimation = setInterval(()=>{
+            
+            modalCurrWidth += widthIncrement * dir;
+            modalCurrHeight += heightIncrement * dir;
+            
+            modalElement.style.width = `${modalCurrWidth}px`;
+            modalElement.style.height = `${modalCurrHeight}px`;
+
+            // we set this here to avoid seen it full dimensions for a tick or two
+            modalElement.style.opacity = 1;
+            
+            // im really proud of this one below rhere: look at it boi look at it
+            if(modalTargetWidth + (modalCurrWidth * -dir) <= 0) {
+
+                modalElement.style.width = `${modalTargetWidth}px`;
+                modalElement.style.height = `${modalTargetHeight}px`;
+                
+                // if we meant to close the modal:
+                if(dir < 0) {
+                    modalElement.close();
+                    
+                    modalElement.style.height = `${modalOriginalHeight}px`;
+                    modalElement.style.width = `${modalOriginalWidth}px`;
+                    
+                    
+                    children.forEach((element, index) => {
+                        element.style.opacity = originalOpacity[index];
+                    });
+                }
+
+                // we let css values take over again to avoid a display conflict if
+                // the user changes the aspect ratio (% and px)
+                modalElement.removeAttribute('style');
+
+                clearInterval(popAnimation);
+            }
+
+        }, timeInterval);
+
+    }, dir > 0 ? 0 : fadeTime);
+}
+
+function backdropFade(dir, duration) {
+
+    // update tick
+    let timeInterval = 10;
+    let opacityIncrement = 1.0 / duration * timeInterval;
+
+    console.log(opacityIncrement);
+
+    let opacityTarget = backdropElement.style.opacity == 0 ? 1.0 : 0.0;
+
+    let fadeAnimation = setInterval(() => {
+
+        // every tick, we mod the opaciy
+        backdropElement.style.opacity = parseFloat(window.getComputedStyle(backdropElement).opacity) + (opacityIncrement * dir);
+
+        duration -= timeInterval;
+
+        if(duration <= 0) {
+
+            backdropElement.style.opacity = opacityTarget * dir;
+            clearInterval(fadeAnimation);
+        }
+        
+    }, timeInterval);
+}
+
+// same as modalPop2 but accepts backdropTime:
+// >= 0: time it takes for the backdrop to fade in/out
+// < 0: leave backdrop as it is
+// behaivour:
+// if opening modal: backdrop fades in, then modal opens
+// if closing modal: modal closes, then backdrop fades out
+// 0 or negative backdropTime will just leave the backdrop as it is
+// use inBetTime to leave some time between the backdrop fade and the modal pop
+function modalPop3(modalElement, dir, popTime, fadeTime, backdropTime=0, inBetTime=0) {
+
+    // modal
+    setTimeout(() => {
+
+        modalPop2(modalElement, dir, popTime, fadeTime);
+
+    }, dir > 0 ? backdropTime + inBetTime : 0);
+
+    if(backdropTime <= 0) return;
+
+    // backdrop
+    setTimeout(() => {
+
+        backdropFade(dir, backdropTime);
+
+    }, dir > 0 ? 0 : popTime + fadeTime);
+
+}
+
 
 // ----------------------------------------------------------       DEBUG
 
