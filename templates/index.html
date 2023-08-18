@@ -41,9 +41,9 @@
                 </div>
             </div>
         </div>
-        <dialog id="intro_modal">
+        <dialog id="intro_modal" class="parent_modal">
             <div id="intro_container">
-                <img src="/static/images/ph_image_user.jpg" id="intro_image">
+                <img id="intro_image" src="/static/images/ph_image_user.jpg">
                 <div id="message_container">
                     <div id="message">
                         <p>Welcome to Calculator Master.</p>
@@ -52,7 +52,7 @@
                         <p>Once the time countdown expires, you will be able to record your name along your score and check how well you did against other players around the globe.</p>
                         <p>Good luck !</p>
                     </div>
-                    <button type="button" id="btn_start">Start</button>
+                    <button id="btn_start" type="button">Start</button>
                 </div>
             </div>
         </dialog>
@@ -60,14 +60,22 @@
             <div id="countdown">
             </div>
         </dialog>
-        <dialog id="name_modal">
+        <dialog id="name_modal" class="parent_modal">
             <div id="name_container">
-                <div id="name">
-                    name:
+                <div id="name_header">
+                    - enter a name -
                 </div>
                 <form id="name_form" action="/">
-                    <input name="name" type="text">
+                    <input id="name_box" name="name" type="text" placeholder="name">
                 </form>
+            </div>
+        </dialog>
+        <dialog id="loading_modal" class="parent_modal">
+            <div id="loading_container">
+                <div id="loading_message">
+                    - some message -
+                </div>
+                <p id="loading_icon">. . .</p>
             </div>
         </dialog>
     </body>

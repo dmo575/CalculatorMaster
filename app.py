@@ -12,5 +12,13 @@ def hello():
     return render_template("index.html")
 
 
+@app.route("/update", methods=['POST'])
+def update():
+    print("UPDATE***********")
+    return "Hello hello from the server Paco how u doing my man"
+
+
+
+
 if __name__ == "__main__":
     app.run(debug=True)

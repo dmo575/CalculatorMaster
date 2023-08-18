@@ -23,10 +23,10 @@ const introModalElement = document.querySelector('#intro_modal');
 const btnStartElement = document.querySelector('#btn_start');
 const countdownModalElement = document.querySelector('#countdown_modal');
 const countdownContainer = document.querySelector('#countdown');
-const nameModal = document.querySelector('#name_modal');
+const nameModalElement = document.querySelector('#name_modal');
 const nameForm = document.querySelector('#name_form');
 const backdropElement = document.querySelector('#backdrop');
-
+const loadingModalElement = document.querySelector('#loading_modal');
 
 // how often we will update the timer UI (miliseconds)
 const timerInterval = 10;
@@ -43,12 +43,40 @@ var currentTime = 99.99 * 1000;
 var lvl = 0;
 // counts the player's mistakes
 var errorCount = 0;
+// keeps track of the backdrop state. To ensure that I can fade the backdrop in and out
+// on both firefox and chrome when using modals, I need to use a div as a backdrop
+// because I cannot access ::backdrop from within firefox. This variable keeps
+// track of wether the global backdrop is currently on or off
+var backdropState = 0;
+// time to take for each animation type, in and out.
+var backdropFadeDuration = 150;
+var messagePopDuration = 100;
+var messageFadeDuration = 100;
 
 
 // ----------------------------------------------------------       EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', (event) => {
 
+
+    let msg = popInMessage(false, ['one', 'two'], 'Ok', ()=>{console.log('btn pressed');}, ()=>{console.log('message popped');});
+
+    setTimeout(() => {
+        
+        let msg2 = popInMessage(false, ['onesdsds', 'twsdsdsdso']);
+
+    }, 1000);
+
+    setTimeout(()=>{
+
+        popOutMessage(msg);
+    }, 2000);
+
+    return;
+    modalPop3(nameModalElement, 1, 100, 100, 200, 0);
+
+    return;
     modalPop3(introModalElement, 1, 200, 100, 400, 200);
+
     
     setTimeout(() => {
         modalPop3(introModalElement,-1, 200, 100, 200);
@@ -116,22 +144,44 @@ document.addEventListener('keydown', (event) => {
 nameForm.addEventListener('submit', (event) => {
     
     event.preventDefault();
-    // check input, is it legal?
-    // send it to server
-    // ask for scores from server
+    let name = nameForm.name.value;
 
-    let name = checkUsername(nameForm.name.value);
+    // client side data validation
+    let forbiddenCharacters = [' ', '?', ',', '=', '(', ')', '+', '-', '*', '%', '.'];
 
-    // if name is valid
-    if(name) {
-        // send to
+    let nameClear = forbiddenCharacters.every((element) => {
+        return !name.includes(element);
+    });
 
-        // then ask for the leaderboard and in the meantime provide feedback to the user
-        // letting him know that you are loading the leaderboard
+    // if the provided name contains any of the forbidden characters
+    if(!nameClear) {
+
+        // pop error message that informs user
+        let element = createMessage(true, ['You cannot use these characters:', `${forbiddenCharacters.join(' ')}`], 'OK', () => {
+            document.body.removeChild(element);
+        });
+        return;
     }
-    else {
-        // show errorModal with name rules
-    }
+
+    sendScore('Pepe', 10, 'Spain');
+    
+    // TODO: USE PROMISES HERE TO SEND DATA TO SERVER BUT FIRST SHOW THE LOADING MODAL
+    // REMEMBER, TO AVOID ERRORS, FIRST LOADING MODAL THEN PROCESS, THEN ONCE PROCESS
+    // COMPLETED, REMOVE LOADING MODAL AND REPEAT. THIS WAY WE DONT HAVE TO REMOVE A LOADIN
+    // MODAL WHILE ITS POPPING AND HAVING WEIRD VISUAL ISSUES
+
+    // call loading message
+    // make a promise:
+    // -todo - send data to server
+    // -fail - provide explanation to user and options on what to do next
+    // -success - initiate next promise (load highscores)
+
+    // 
+
+    // loading high scores:
+    // -todo - retreive highscore data
+    // -fail - provide explanation to user and options on what to do next (retry)
+    // -success - load leaderboard
 });
 
 // ----------------------------------------------------------       MAIN FUNCTIONS
@@ -329,6 +379,52 @@ function printThankYou() {
             btn++;
         }
     }
+}
+
+async function sendScore(user, score, loc) {
+
+
+
+    popInMessage(false, ['one', 'two'], 'Ok', ()=>{console.log('btn pressed');}, ()=>{console.log('message popped');});
+
+    return;
+
+    const userData = {
+        user: user,
+        score: score,
+        loc: loc
+    };
+
+    const userDataMethod = {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(userData)
+    };
+
+    // pop up message: seinding data to server
+    let msgSendingData = createMessage(false, ['Sending result to server...']);
+
+    // send data to server:
+    await fetch('/update', userDataMethod).then(response => {
+
+        if(response.ok) {
+            return response.text();
+        }
+        else {
+            throw new Error('response was not OK');
+        } 
+
+    }).then(data => {
+        console.log(data);
+        document.body.removeChild(msgSendingData);
+    }).catch(error => {
+        document.body.removeChild(msgSendingData);
+        const er = createMessage(true, ['There was an error sending the data'], 'Oke', () => {
+            document.body.removeChild(er);
+        });
+    }).finally(() => {
+        console.log('process finished.')
+    });
 }
 
 // ----------------------------------------------------------       ARRAY GRID SEARCH
@@ -658,81 +754,126 @@ function checkUsername(name) {
     return finalName;
 }
 
-// ----------------------------------------------------------       ANIMATIONS
-// modal must contain the width and height
-// ideally, children w:h should be relative to modal's w:h, not absolute
-// arguments:
-// dir: 1 to grow from nothing, 0 to shrink onto nothing
-// time: how long will the griw/shrink take (miliseconds)
-// fadeinStart: at what point in the grow/shrink you want the children to start the dafe in/out (miliseconds)
-// 
-function modalPop(modalElement, dir, time, fadeInStart=70) {
+// pops an error message just below the subject element
+function createMessage_OLD(subject, messageLines, buttonText, buttonCallBack) {
 
-    // TODO: disable input
-
-    // animation tick
-    let timeInterval = 10;
-    // keeps track of the sizing progress (%)
-    let sizingProgress = 0;
-    // element's children
-    let children = Array.from(modalElement.children);
-    // gets computed size of the element pre-opening it, meaning its in %
-    let temp = window.getComputedStyle(modalElement).width;
-    let modalInitWidth = parseInt(temp.slice(0, temp.length - 1));
-    temp = window.getComputedStyle(modalElement).height;
-    let modalInitHeight = parseInt(temp.slice(0, temp.length - 1));
-    // will store the current size of the element
-    let modalCurrWidth = 0;
-    let modalCurrHeight = 0;
-    // how much should the size change by each tick
-    let widthIncrement = modalInitWidth / time * timeInterval;
-    let heightIncrement = modalInitHeight / time * timeInterval;
-
-    // set children opacity to start value based on dir
-    let targetOpacity = [];
-    children.forEach((element) => {
-        targetOpacity.push(window.getComputedStyle(element).opacity);
-        element.style.opacity = 0;
+    // set up message line elements
+    let messageChildren = [];
+    messageLines.forEach((line, index) => {
+        messageChildren.push(document.createElement('p'));
+        messageChildren[index].innerText = line;
+        messageChildren[index].classList.add('message_line');
     });
     
-    modalElement.showModal();
+    // set up message button
+    let buttonElement = document.createElement('button');
+    buttonElement.innerText = buttonText;
+    buttonElement.classList.add('message_button');
+    
+    // set up dialog element
+    let dialogElement = document.createElement('dialog');
+    messageChildren.forEach((element) => {
+        dialogElement.appendChild(element);
+    });
+    dialogElement.appendChild(buttonElement);
+    dialogElement.classList.add('message_dialog');
+    
+    //set up container element
+    let containerElement = document.createElement('div');
+    containerElement.appendChild(dialogElement);
+    subject.appendChild(containerElement);
+    containerElement.classList.add('message_container');
+    
+    buttonElement.addEventListener('click', buttonCallBack);
+    dialogElement.show();
 
-    let interval = setInterval(()=>{
-
-        // modal pop up
-        modalCurrWidth += widthIncrement;
-        modalCurrHeight += heightIncrement;
-
-        modalElement.style.width = `${modalCurrWidth}%`;
-        //modalElement.style.height = `${modalCurrHeight}%`;
-        modalElement.style.height = `${modalInitHeight}%`;
-
-        // update progress percentage
-        sizingProgress = modalCurrHeight / (modalInitHeight / 100);
-
-
-        // if the modal is at least 'fadeInStart'% done resizing
-        if(sizingProgress >= fadeInStart) {
-            
-            children.forEach((element, index) => {
-                // replace 1.0 for target opacity value
-                let opacityIncrement = targetOpacity[index] / (100 - fadeInStart);
-                // the value this elemen's opacity should be at right now
-                let newOpVal = opacityIncrement * (sizingProgress - fadeInStart);
-                element.style.opacity = newOpVal;
-            });
-        }
-
-
-        if(modalCurrWidth >= modalInitWidth) {
-
-            modalElement.style.width = `${modalInitWidth}%`;
-            modalElement.style.height = `${modalInitHeight}%`;
-            clearInterval(interval);
-        }
-
-    }, timeInterval);
+    return containerElement;
 }
+
+// pops a message, returns message element (dialog element)
+function createMessage(isError, messageLines, buttonText='', buttonCallBack=undefined) {
+
+    // set up message line elements
+    let lines = [];
+    messageLines.forEach((line, index) => {
+        lines.push(document.createElement('p'));
+        lines[index].innerText = line;
+        lines[index].classList.add('message_line');
+    });
+    
+    // set up message button
+    let buttonElement;
+    if(buttonCallBack) {
+        buttonElement = document.createElement('button');
+        buttonElement.innerText = buttonText;
+        buttonElement.classList.add('message_button');
+        buttonElement.addEventListener('click', buttonCallBack);
+    }
+    
+    // set up dialog element
+    let dialogElement = document.createElement('dialog');
+    lines.forEach((element) => {
+        dialogElement.appendChild(element);
+    });
+
+    if(buttonCallBack) {
+        dialogElement.appendChild(buttonElement);
+    }
+
+    dialogElement.classList.add('message_dialog');
+    if(isError) {
+        dialogElement.classList.add('message_dialog_error_theme');
+    }
+    document.body.appendChild(dialogElement);
+
+    //dialogElement.showModal();
+
+    return dialogElement;
+}
+
+// opens a message, manages backdrop
+function popInMessage(isError, messageLines, buttonText='', buttonCallback=undefined, popCallback=undefined) {
+
+    // creates a message
+    const message = createMessage(isError, messageLines, buttonText, buttonCallback);
+
+    // calculate when to pop the message modal (either now or after backdrop fade)
+    const timeToPopModal = backdropState == -1 ? backdropFadeDuration : 0;
+
+    setTimeout(() => {
+
+        modalPop2(message, 1, messagePopDuration, messageFadeDuration, popCallback);
+
+    }, timeToPopModal);
+
+    // call the pop callback after the pop
+    if(popCallback) {
+
+        setTimeout(() => {
+
+            popCallback();
+
+        }, messagePopDuration + messageFadeDuration);
+    }
+
+    // call backdrop fade
+    backdropFade(1, backdropFadeDuration);
+
+    return message;
+}
+
+function popOutMessage(messageElement) {
+    // closes the message
+
+    const timeToFadeBackdrop = backdropState == 1 ? messagePopDuration + messageFadeDuration : 0;
+    modalPop2(messageElement, -1, messagePopDuration, messageFadeDuration);
+
+    setTimeout(() => {
+        backdropFade(-1, backdropFadeDuration);
+    }, timeToFadeBackdrop);
+}
+
+// ----------------------------------------------------------       ANIMATIONS
 
 // open/close modal animation
 // modal has w:h anc background color
@@ -890,12 +1031,29 @@ function modalPop2(modalElement, dir, popTime, fadeTime) {
 
 function backdropFade(dir, duration) {
 
+    // if the state we want to set the backdrop to is the state the backdrop is already
+    // on, then we dont need to do anything.
+    if((backdropState == 1 && dir > 0) ||
+        backdropState == 0 && dir < 0) {
+        return;
+    }
+
+    let messages = document.querySelectorAll('.message_dialog').length;
+
+    // if we have more than one message open but want to close the backdrop, dont.
+    if (messages > 1 && dir == -1) {
+        return;
+    }
+
+    // set backdrop state
+    backdropState = dir;
+
+    // while backdrop fade is in progress, we direct all pointer events to it
+    backdropElement.style.pointerEvents = 'auto';
+
     // update tick
     let timeInterval = 10;
     let opacityIncrement = 1.0 / duration * timeInterval;
-
-    console.log(opacityIncrement);
-
     let opacityTarget = backdropElement.style.opacity == 0 ? 1.0 : 0.0;
 
     let fadeAnimation = setInterval(() => {
@@ -908,6 +1066,8 @@ function backdropFade(dir, duration) {
         if(duration <= 0) {
 
             backdropElement.style.opacity = opacityTarget * dir;
+            // if backdrop faded out, let pointer events go trough
+            backdropElement.style.pointerEvents = dir > 0 ? 'auto' : 'none';
             clearInterval(fadeAnimation);
         }
         
@@ -922,25 +1082,38 @@ function backdropFade(dir, duration) {
 // if closing modal: modal closes, then backdrop fades out
 // 0 or negative backdropTime will just leave the backdrop as it is
 // use inBetTime to leave some time between the backdrop fade and the modal pop
-function modalPop3(modalElement, dir, popTime, fadeTime, backdropTime=0, inBetTime=0) {
+function modalPop3(modalElement, dir, popTime, fadeTime, backdropTime=0, inBetTime=0, callback=undefined) {
 
     // modal
     setTimeout(() => {
 
-        modalPop2(modalElement, dir, popTime, fadeTime);
+        modalPop2(modalElement, dir, popTime, fadeTime, callback);
 
     }, dir > 0 ? backdropTime + inBetTime : 0);
+
+    if(callback) {
+
+        setTimeout(() => {
+            callback();
+        }, popTime + fadeTime + inBetTime);
+    }
+
 
     if(backdropTime <= 0) return;
 
     // backdrop
     setTimeout(() => {
 
+        console.log('bdrop');
         backdropFade(dir, backdropTime);
 
     }, dir > 0 ? 0 : popTime + fadeTime);
 
 }
+
+// ----------------------------------------------------------       NEW NEW NEW NEW NEW
+
+//
 
 
 // ----------------------------------------------------------       DEBUG
