@@ -55,7 +55,15 @@ var errorCount = 0;
 // ----------------------------------------------------------       EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', (event) => {
 
-    popInModal(leaderboardModalElement);
+    const myPromise = new Promise((resolve, reject) => {
+        popInMessage(false, ['This is a Promise message test'], 'Ok', resolve);
+    });
+
+    myPromise.then(() => {
+        console.log('POPPED');
+    });
+    //popInModal(leaderboardModalElement);
+    //loadScoreBoard();
 
 });
 
@@ -117,35 +125,7 @@ nameForm.addEventListener('submit', (event) => {
 
     let name = nameForm.name.value;
 
-    // client side data validation
-    /*
-    let forbiddenCharacters = [' ', '?', ',', '=', '(', ')', '+', '-', '*', '%', '.'];
-
-    let nameClear = forbiddenCharacters.every((element) => {
-        return !name.includes(element);
-    });
-
-    // if the provided name contains any of the forbidden characters
-    if(!nameClear) {
-
-        // pop error message that informs user
-        let wronCharsMessage = popInMessage(true, ['You cannot use these characters:', `${forbiddenCharacters.join(' ')}`], 'OK', () => {
-            popOutMessage(wronCharsMessage);
-        });
-        return;
-    }
-
-    // if the name contains the minumun length
-    if(name.length < 3) {
-
-        // pop error message that informs user
-        let wronCharsMessage = popInMessage(true, ['The name must be at least 3 characters long'], 'OK', () => {
-            popOutMessage(wronCharsMessage);
-        });
-        return;
-    }
-    */
-
+    // client side data validation for the name
     let checkObject = checkUsername(name);
 
     if(!checkObject.pass) {
@@ -164,22 +144,12 @@ nameForm.addEventListener('submit', (event) => {
         
         let message = popInMessage(false, ['sending your score to the server', '. . .'], '', undefined, () => {
     
-            // TODO: GATHER ALL THE DATA THAT IS TO BE SENT
             console.log('loading msg popped. server data transfer can start');
-            sendScore(message, name, lvl);
+            sendScore(message, name, lvl, () => {
+                loadScoreBoard();
+            });
         });
     });
-    
-    // call loading message
-    // make a promise:
-    // -todo - send data to server
-    // -fail - provide explanation to user and options on what to do next
-    // -success - initiate next promise (load highscores)
-
-    // loading high scores:
-    // -todo - retreive highscore data
-    // -fail - provide explanation to user and options on what to do next (retry)
-    // -success - load leaderboard
 });
 
 // ----------------------------------------------------------       MAIN FUNCTIONS
@@ -379,7 +349,7 @@ function printThankYou() {
     }
 }
 
-async function sendScore(message, user, score) {
+async function sendScore(message, user, score, onScoreSentCallback) {
     
     // this is the data object we will send as a json
     const userData = {
@@ -414,7 +384,7 @@ async function sendScore(message, user, score) {
         popOutMessage(message, ()=> {
             // load scoreboard
             console.log('loading scoreboard');
-            loadScoreBoard();
+            onScoreSentCallback();
         });
     }).catch(error => {
         // if an error was found:
@@ -423,7 +393,7 @@ async function sendScore(message, user, score) {
             const errMessage = popInMessage(true, ['There was an error sending the data'], 'Try again', () => {
                 popOutMessage(errMessage, () => {
                     const retry = popInMessage(false, ['Retrying', '. . .'], '', undefined, () => {
-                        sendScore(retry, user, score);
+                        sendScore(retry, user, score, onScoreSentCallback);
                     });
                 });
             });
@@ -433,57 +403,84 @@ async function sendScore(message, user, score) {
     });
 }
 
+// loads the scoreboard table and populates it with data
 function loadScoreBoard() {
 
     // opens a loading message
-    const loadingScoreMsg = popInMessage(false, ['loading score', '. . .'], '', undefined, async () => {
+    console.log('one');
+    const loadingScoreMsg = popInMessage(false, ['loading score', '. . .'], '', undefined, () => {
+        setTimeout(()=> {
+            getScoreboardData(loadingScoreMsg);
 
-        const requestObject = {
-            method: 'GET',
-            headers: {'Content-Type': 'application/json'}
-        };
+        }, 10);
+    });
+}
 
-        // fetch scoreboard data
-        await fetch('/get_scoreboard', requestObject)
-        .then((response) => {
-            // handle response
-            if(response.status == 200) {
-                return response.json();
-            }
-            else {
-                throw new Error(response.text().message);
-            }
-        })
-        .then((data) => {
-            // response was OK, so we close the loading message and load the scoreboard
-            console.log(data);
-            popOutMessage(loadingScoreMsg, () => {
-                // TODO: draw scoreboard
-                // let flags = loadFlags(data)
-                // drawScoreboard(data, flags);
-                // ALSO: What about the flags, we have not loaded them yet.
-                // Try to load each flag once, get unique names on a list and
-                // for each load a flag
-            });
-        })
-        .catch((error) => {
-            // if the response had some error popping in, close loading
-            // message and open error message
-            console.log(error);
-            popOutMessage(loadingScoreMsg, () => {
-                const errMsg = popInMessage(true, ['An error accured while loading the scoreboard'], 'Retry', () => {
-                    popOutMessage(errMsg, () => {
-                        // if the user clicls Try again, try to load the scoreboard again
-                        loadScoreBoard();
-                    });
+async function getScoreboardData(loadingScoreMsg) {
+
+
+    const requestObject = {
+        method: 'GET',
+        headers: {'Content-Type': 'application/json'}
+    };
+
+    // fetch scoreboard data
+    await fetch('/get_scoreboard', requestObject)
+    .then((response) => {
+        // handle response
+        if(response.status == 200) {
+            return response.json();
+        }
+        else {
+            throw new Error(response.text().message);
+        }
+    })
+    .then((data) => {
+        // response was OK, so we close the loading message and load the scoreboard
+        console.log(data);
+        console.log(data);
+        console.log(data);
+        console.log(data);
+
+        popOutMessage(loadingScoreMsg, () => {
+            // TODO: draw scoreboard
+            let flags = loadFlags(data);
+            // drawScoreboard(data, flags);
+            // ALSO: What about the flags, we have not loaded them yet.
+            // Try to load each flag once, get unique names on a list and
+            // for each load a flag
+        });
+    })
+    .catch((error) => {
+        // if the response had some error popping in, close loading
+        // message and open error message
+        console.log(error);
+        popOutMessage(loadingScoreMsg, () => {
+            const errMsg = popInMessage(true, ['An error accured while loading the scoreboard'], 'Retry', () => {
+                popOutMessage(errMsg, () => {
+                    // if the user clicls Try again, try to load the scoreboard again
+                    loadScoreBoard();
                 });
             });
-        })
-        .finally(() => {
-            // debug
-            console.log('scoreboard process finished.')
         });
+    })
+    .finally(() => {
+        // debug
+        console.log('scoreboard process finished.')
     });
+}
+
+/*
+on submit
+    send data
+    .then (load scoreboard)
+
+send data:
+
+*/
+
+function loadFlags(data) {
+
 }
 
 // ----------------------------------------------------------       ARRAY GRID SEARCH

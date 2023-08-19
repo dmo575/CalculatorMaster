@@ -369,14 +369,15 @@ body {
 #leaderboard {
     width: 80%;
     height: 80%;
+    margin-top: 5%;
 }
 
 #leaderboard_container {
     display: flex;
     flex-direction: column;
 
-    padding-left: 1rem;
-    padding-right: 1rem;
+    /*padding-left: 1rem;
+    padding-right: 1rem;*/
 }
 
 #leaderboard_item {
@@ -385,5 +386,16 @@ body {
 
     width: 100%;
 
-    background-color: bisque;
+    margin-bottom: 1px;
+
+    border-top: 1px solid rgba(128, 128, 128, 0.397);
+    /*border-bottom: 1px solid rgba(0, 0, 0, 0.404);*/
+
+    background-color: rgba(55, 91, 97, 0.096);
+}
+
+#leaderboard_item_component {
+
+    padding-left: 2rem;
+    padding-right: 2rem;
 }
