@@ -1,5 +1,6 @@
 import Button from './button.js';
 import vec from './vec.js';
+import { popInMessage, popOutMessage, popInModal } from './message.js';
 import { printGridArray, printGridButton } from './debug.js';
 
 
@@ -19,14 +20,20 @@ const timerElement = document.querySelector('#timer');
 const errorsElement = document.querySelector('#errors');
 const levelElement = document.querySelector('#level');
 const gridElement = document.querySelector('#buttons_container');
-const introModalElement = document.querySelector('#intro_modal');
-const btnStartElement = document.querySelector('#btn_start');
 const countdownModalElement = document.querySelector('#countdown_modal');
 const countdownContainer = document.querySelector('#countdown');
-const nameModalElement = document.querySelector('#name_modal');
+
+// forms
 const nameForm = document.querySelector('#name_form');
-const backdropElement = document.querySelector('#backdrop');
+
+// modal message boxes
+const introModalElement = document.querySelector('#intro_modal');
+const nameModalElement = document.querySelector('#name_modal');
+const leaderboardModalElement = document.querySelector('#leaderboard');
 const loadingModalElement = document.querySelector('#loading_modal');
+
+// buttons
+const introModalButtonElement = document.querySelector('#btn_start');
 
 // how often we will update the timer UI (miliseconds)
 const timerInterval = 10;
@@ -43,50 +50,13 @@ var currentTime = 99.99 * 1000;
 var lvl = 0;
 // counts the player's mistakes
 var errorCount = 0;
-// keeps track of the backdrop state. To ensure that I can fade the backdrop in and out
-// on both firefox and chrome when using modals, I need to use a div as a backdrop
-// because I cannot access ::backdrop from within firefox. This variable keeps
-// track of wether the global backdrop is currently on or off
-var backdropState = 0;
-// time to take for each animation type, in and out.
-var backdropFadeDuration = 150;
-var messagePopDuration = 100;
-var messageFadeDuration = 100;
 
 
 // ----------------------------------------------------------       EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', (event) => {
 
+    popInModal(leaderboardModalElement);
 
-    let msg = popInMessage(false, ['one', 'two'], 'Ok', ()=>{console.log('btn pressed');}, ()=>{console.log('message popped');});
-
-    setTimeout(() => {
-        
-        let msg2 = popInMessage(false, ['onesdsds', 'twsdsdsdso']);
-
-    }, 1000);
-
-    setTimeout(()=>{
-
-        popOutMessage(msg);
-    }, 2000);
-
-    return;
-    modalPop3(nameModalElement, 1, 100, 100, 200, 0);
-
-    return;
-    modalPop3(introModalElement, 1, 200, 100, 400, 200);
-
-    
-    setTimeout(() => {
-        modalPop3(introModalElement,-1, 200, 100, 200);
-    }, 2000);
-    
-    setTimeout(() => {
-        
-        modalPop2(introModalElement, 1, 200, 100);
-    }, 4000);
-    return;
 });
 
 // triggers each time the player presses a button on the calculator
@@ -128,9 +98,8 @@ document.addEventListener('click', (event) => {
 });
 
 // starts the 3-0 countdown, closes intro modal
-btnStartElement.addEventListener('click', (event) => {
-    introModalElement.close();
-    startCountDown();
+introModalButtonElement.addEventListener('click', (event) => {
+    popOutMessage(introModalElement, startCountDown);
 });
 
 // prevents the user from closing any modal by pressing the Esc keyword
@@ -143,10 +112,13 @@ document.addEventListener('keydown', (event) => {
 // this triggers when the suer hits enter after entering its name
 nameForm.addEventListener('submit', (event) => {
     
+    // prevent default, we will handle the request by fetch.
     event.preventDefault();
+
     let name = nameForm.name.value;
 
     // client side data validation
+    /*
     let forbiddenCharacters = [' ', '?', ',', '=', '(', ')', '+', '-', '*', '%', '.'];
 
     let nameClear = forbiddenCharacters.every((element) => {
@@ -157,26 +129,52 @@ nameForm.addEventListener('submit', (event) => {
     if(!nameClear) {
 
         // pop error message that informs user
-        let element = createMessage(true, ['You cannot use these characters:', `${forbiddenCharacters.join(' ')}`], 'OK', () => {
-            document.body.removeChild(element);
+        let wronCharsMessage = popInMessage(true, ['You cannot use these characters:', `${forbiddenCharacters.join(' ')}`], 'OK', () => {
+            popOutMessage(wronCharsMessage);
         });
         return;
     }
 
-    sendScore('Pepe', 10, 'Spain');
-    
-    // TODO: USE PROMISES HERE TO SEND DATA TO SERVER BUT FIRST SHOW THE LOADING MODAL
-    // REMEMBER, TO AVOID ERRORS, FIRST LOADING MODAL THEN PROCESS, THEN ONCE PROCESS
-    // COMPLETED, REMOVE LOADING MODAL AND REPEAT. THIS WAY WE DONT HAVE TO REMOVE A LOADIN
-    // MODAL WHILE ITS POPPING AND HAVING WEIRD VISUAL ISSUES
+    // if the name contains the minumun length
+    if(name.length < 3) {
 
+        // pop error message that informs user
+        let wronCharsMessage = popInMessage(true, ['The name must be at least 3 characters long'], 'OK', () => {
+            popOutMessage(wronCharsMessage);
+        });
+        return;
+    }
+    */
+
+    let checkObject = checkUsername(name);
+
+    if(!checkObject.pass) {
+
+        // pop error message that informs user
+        let wronCharsMessage = popInMessage(true, checkObject.errorArray, 'OK', () => {
+            popOutMessage(wronCharsMessage);
+        });
+
+        return;
+    }
+
+    // name was accepted so we can close the name modal and open a message modal
+    // that informs the user that its score its being sent to the server
+    popOutMessage(nameModalElement, () => {
+        
+        let message = popInMessage(false, ['sending your score to the server', '. . .'], '', undefined, () => {
+    
+            // TODO: GATHER ALL THE DATA THAT IS TO BE SENT
+            console.log('loading msg popped. server data transfer can start');
+            sendScore(message, name, lvl);
+        });
+    });
+    
     // call loading message
     // make a promise:
     // -todo - send data to server
     // -fail - provide explanation to user and options on what to do next
     // -success - initiate next promise (load highscores)
-
-    // 
 
     // loading high scores:
     // -todo - retreive highscore data
@@ -381,49 +379,110 @@ function printThankYou() {
     }
 }
 
-async function sendScore(user, score, loc) {
-
-
-
-    popInMessage(false, ['one', 'two'], 'Ok', ()=>{console.log('btn pressed');}, ()=>{console.log('message popped');});
-
-    return;
-
+async function sendScore(message, user, score) {
+    
+    // this is the data object we will send as a json
     const userData = {
         user: user,
         score: score,
-        loc: loc
     };
 
-    const userDataMethod = {
+    // request data
+    const requestObject = {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify(userData)
     };
 
-    // pop up message: seinding data to server
-    let msgSendingData = createMessage(false, ['Sending result to server...']);
-
     // send data to server:
-    await fetch('/update', userDataMethod).then(response => {
-
+    await fetch('/update', requestObject)
+    .then(response => {
+        // examine server response
         if(response.ok) {
+            
             return response.text();
+            throw new Error('response was not OK');
         }
         else {
+            console.log(response.text());
             throw new Error('response was not OK');
         } 
 
     }).then(data => {
+        //request successful
         console.log(data);
-        document.body.removeChild(msgSendingData);
+        popOutMessage(message, ()=> {
+            // load scoreboard
+            console.log('loading scoreboard');
+            loadScoreBoard();
+        });
     }).catch(error => {
-        document.body.removeChild(msgSendingData);
-        const er = createMessage(true, ['There was an error sending the data'], 'Oke', () => {
-            document.body.removeChild(er);
+        // if an error was found:
+        console.log(error);
+        popOutMessage(message, () => {
+            const errMessage = popInMessage(true, ['There was an error sending the data'], 'Try again', () => {
+                popOutMessage(errMessage, () => {
+                    const retry = popInMessage(false, ['Retrying', '. . .'], '', undefined, () => {
+                        sendScore(retry, user, score);
+                    });
+                });
+            });
         });
     }).finally(() => {
         console.log('process finished.')
+    });
+}
+
+function loadScoreBoard() {
+
+    // opens a loading message
+    const loadingScoreMsg = popInMessage(false, ['loading score', '. . .'], '', undefined, async () => {
+
+        const requestObject = {
+            method: 'GET',
+            headers: {'Content-Type': 'application/json'}
+        };
+
+        // fetch scoreboard data
+        await fetch('/get_scoreboard', requestObject)
+        .then((response) => {
+            // handle response
+            if(response.status == 200) {
+                return response.json();
+            }
+            else {
+                throw new Error(response.text().message);
+            }
+        })
+        .then((data) => {
+            // response was OK, so we close the loading message and load the scoreboard
+            console.log(data);
+            popOutMessage(loadingScoreMsg, () => {
+                // TODO: draw scoreboard
+                // let flags = loadFlags(data)
+                // drawScoreboard(data, flags);
+                // ALSO: What about the flags, we have not loaded them yet.
+                // Try to load each flag once, get unique names on a list and
+                // for each load a flag
+            });
+        })
+        .catch((error) => {
+            // if the response had some error popping in, close loading
+            // message and open error message
+            console.log(error);
+            popOutMessage(loadingScoreMsg, () => {
+                const errMsg = popInMessage(true, ['An error accured while loading the scoreboard'], 'Retry', () => {
+                    popOutMessage(errMsg, () => {
+                        // if the user clicls Try again, try to load the scoreboard again
+                        loadScoreBoard();
+                    });
+                });
+            });
+        })
+        .finally(() => {
+            // debug
+            console.log('scoreboard process finished.')
+        });
     });
 }
 
@@ -745,15 +804,41 @@ function getRanNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+// checks given username, returns object with results
 function checkUsername(name) {
 
-    let finalName = name.replace(new RegExp(' ', 'g'), '');
+    let returnObject = {
+        pass: true,
+        errorArray: ''
+    };
 
-    if(finalName.length == 0) return false;
+    let forbiddenCharacters = [' ', '?', ',', '=', '(', ')', '+', '-', '*', '%', '.'];
 
-    return finalName;
+    let nameClear = forbiddenCharacters.every((element) => {
+        return !name.includes(element);
+    });
+
+    // if the provided name contains any of the forbidden characters
+    if(!nameClear) {
+
+        returnObject.pass = false;
+        returnObject.errorArray = ['You cannot use these characters:', `${forbiddenCharacters.join(' ')}`];
+        return returnObject;
+    }
+
+    // if the name contains the minumun length
+    if(name.length < 3) {
+
+        returnObject.pass = false;
+        returnObject.errorArray = ['The name must be at least 3 characters long'];
+        return returnObject;
+    }
+
+    return returnObject;
 }
 
+
+/*
 // pops an error message just below the subject element
 function createMessage_OLD(subject, messageLines, buttonText, buttonCallBack) {
 
@@ -1110,11 +1195,7 @@ function modalPop3(modalElement, dir, popTime, fadeTime, backdropTime=0, inBetTi
     }, dir > 0 ? 0 : popTime + fadeTime);
 
 }
-
-// ----------------------------------------------------------       NEW NEW NEW NEW NEW
-
-//
-
+*/
 
 // ----------------------------------------------------------       DEBUG
 
