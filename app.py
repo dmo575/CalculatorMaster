@@ -49,8 +49,8 @@ def update():
     return jsonify({"message": "200 OKE", "data": client_data}), 200
 
 
-@app.route("/get_scoreboard", methods=["GET"])
-def get_scoreboard():
+@app.route("/get_leaderboard", methods=["GET"])
+def get_leaderboard():
     # return the first X players, ordered by score then name
     result = db.session.execute(text("SELECT * FROM data ORDER BY score DESC"))
     data = result.fetchall()

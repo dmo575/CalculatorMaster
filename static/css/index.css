@@ -380,7 +380,7 @@ body {
     padding-right: 1rem;*/
 }
 
-#leaderboard_item {
+.leaderboard_item {
     display: flex;
     justify-content: space-between;
 
@@ -394,8 +394,9 @@ body {
     background-color: rgba(55, 91, 97, 0.096);
 }
 
-#leaderboard_item_component {
+.leaderboard_item_component {
 
     padding-left: 2rem;
     padding-right: 2rem;
+    margin: 0;
 }

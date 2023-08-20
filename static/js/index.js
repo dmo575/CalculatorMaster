@@ -1,6 +1,6 @@
 import Button from './button.js';
 import vec from './vec.js';
-import { popInMessage, popOutMessage, popInModal } from './message.js';
+import { openMessage, closeMessage, openMessagePre } from './message.js';
 import { printGridArray, printGridButton } from './debug.js';
 
 
@@ -55,15 +55,8 @@ var errorCount = 0;
 // ----------------------------------------------------------       EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', (event) => {
 
-    const myPromise = new Promise((resolve, reject) => {
-        popInMessage(false, ['This is a Promise message test'], 'Ok', resolve);
-    });
-
-    myPromise.then(() => {
-        console.log('POPPED');
-    });
-    //popInModal(leaderboardModalElement);
-    //loadScoreBoard();
+    openMessagePre(nameModalElement, true);
+    //openMessagePre(leaderboardModalElement, true);
 
 });
 
@@ -128,26 +121,28 @@ nameForm.addEventListener('submit', (event) => {
     // client side data validation for the name
     let checkObject = checkUsername(name);
 
+    // if name is invalid, send mesage to the user with reason.
     if(!checkObject.pass) {
 
-        // pop error message that informs user
-        let wronCharsMessage = popInMessage(true, checkObject.errorArray, 'OK', () => {
-            popOutMessage(wronCharsMessage);
+        openMessage(true, checkObject.errorArray, false, 'OK', (e) => {
+            closeMessage(e.target.parentNode);
         });
 
         return;
     }
 
-    // name was accepted so we can close the name modal and open a message modal
-    // that informs the user that its score its being sent to the server
-    popOutMessage(nameModalElement, () => {
-        
-        let message = popInMessage(false, ['sending your score to the server', '. . .'], '', undefined, () => {
-    
-            console.log('loading msg popped. server data transfer can start');
-            sendScore(message, name, lvl, () => {
-                loadScoreBoard();
+    // close the 'insert name' message
+    closeMessage(nameModalElement, false)
+    .then(()=> {
+
+        sendScore2(name, lvl)
+        .then(()=> {
+
+            showLeaderboard()
+            .then(() => {
+                console.log('SCOREBOARD DONE');
             });
+
         });
     });
 });
@@ -349,7 +344,8 @@ function printThankYou() {
     }
 }
 
-async function sendScore(message, user, score, onScoreSentCallback) {
+// resolved once the data has been sent to the server
+function sendScore2(user, score, loadingModal=undefined) {
     
     // this is the data object we will send as a json
     const userData = {
@@ -364,56 +360,165 @@ async function sendScore(message, user, score, onScoreSentCallback) {
         body: JSON.stringify(userData)
     };
 
-    // send data to server:
-    await fetch('/update', requestObject)
-    .then(response => {
-        // examine server response
-        if(response.ok) {
-            
-            return response.text();
-            throw new Error('response was not OK');
-        }
-        else {
-            console.log(response.text());
-            throw new Error('response was not OK');
-        } 
+    const promise = new Promise((resolve, reject) => {
 
-    }).then(data => {
-        //request successful
-        console.log(data);
-        popOutMessage(message, ()=> {
-            // load scoreboard
-            console.log('loading scoreboard');
-            onScoreSentCallback();
-        });
-    }).catch(error => {
-        // if an error was found:
-        console.log(error);
-        popOutMessage(message, () => {
-            const errMessage = popInMessage(true, ['There was an error sending the data'], 'Try again', () => {
-                popOutMessage(errMessage, () => {
-                    const retry = popInMessage(false, ['Retrying', '. . .'], '', undefined, () => {
-                        sendScore(retry, user, score, onScoreSentCallback);
+        // open 'loading' msg
+        openMessage(false, ['Sending your score to the server', '. . . '])
+        .then((loadingMsg) => {
+            // then start a fetch request
+            fetch('/update', requestObject)
+            .then((response) => {
+                // then process the response
+
+                // if response was 200 OK
+                if(response.status == 200) {
+                    
+                    // close loading message
+                    closeMessage(loadingMsg)
+                    .then(() => {
+                        // then resolve
+                        resolve();
+                    });
+                }
+                else {
+                    // if response not 200 OK, throw an error
+                    throw new Error('There was an error while sending the data');
+                }
+            })
+            .catch((error) => {
+                // handle fetch request errors
+
+                //close the loading message
+                closeMessage(loadingMsg)
+                .then(() => {
+                    // then open an error message with the option to try again
+                    openMessage(true, ['Oops !', 'An error acurred while sending the score to the server'],false, 'Try again',  (e) => {
+                        // on click 'try again':
+                        // close error message
+                        closeMessage(e.target.parentNode)
+                        .then(() => {
+                            // then call sendScore recursively
+                            sendScore2(user, score)
+                            .then(() => {
+                                // then once sendScore has been solved (aka data sent), resolve
+                                resolve();
+                            });
+                        });
                     });
                 });
             });
         });
-    }).finally(() => {
-        console.log('process finished.')
+    });
+
+    return promise;
+}
+
+
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+
+// handles the loading and displaying of the leaderboard
+function showLeaderboard() {
+
+    // to be resolved once leaderboard is displayed
+    const promise = new Promise ((resolve, reject) => {
+        // open loading message
+        openMessage(false, ['Loading global rankins', '. . .'])
+        .then((loadingMsg) => {
+            // then fetch for leaderboard data
+            fetch('/get_leaderboard')
+            .then((response) => {
+                // then handle response
+
+                if(response.status == 200) {
+
+                    return response.text();
+                }
+                else {
+                    throw new Error('Response came out NOT OK');
+                }
+            })
+            .then((data) => {
+                // if response ok, then handle data
+
+                // updates the leaderboard modal with retrieved data
+                let dataArray = JSON.parse(data);
+                // updates the leaderboard modal with the new data
+                updateLeaderboardModal(dataArray);
+                // close the loading message
+                closeMessage(loadingMsg)
+                .then(() => {
+                    // then open the leaderboard modal
+                    openMessagePre(leaderboardModalElement)
+                    .then(() => {
+                        // then resolve
+                        resolve();
+                    });
+                });
+            })
+            .catch(error => {
+                // if an error happens
+
+                // close loading message
+                closeMessage(loadingMsg)
+                .then(() => {
+                    // then open an error message with a 'Try again' option
+                    openMessage(true, ['Error while retrieving leaderboard.'], false, 'Try again', (e) => {
+                        // on 'Try again' click: close the error message
+                        closeMessage(e.target.parentNode)
+                        .then(() => {
+                            // then recursively call showLeaderboard
+                            showLeaderboard()
+                            .then(() => {
+                                // then (once leaderboard is displayed), resolve
+                                resolve();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
+
+    return promise;
+}
+
+function updateLeaderboardModal(data) {
+
+    // clean all items from leaderboard_container
+    let container = leaderboardModalElement.querySelector('#leaderboard_container');
+
+    // remove all items from leaderboard (if any)
+    while(container.lastChild) {
+        container.removeChild(container.lastChild);
+    }
+
+    data.forEach((element) => {
+        let item = createLeaderboardItem(element);
+        container.appendChild(item);
     });
 }
 
-// loads the scoreboard table and populates it with data
-function loadScoreBoard() {
+function createLeaderboardItem(itemDataDictionary) {
 
-    // opens a loading message
-    console.log('one');
-    const loadingScoreMsg = popInMessage(false, ['loading score', '. . .'], '', undefined, () => {
-        setTimeout(()=> {
-            getScoreboardData(loadingScoreMsg);
+    let item = document.createElement('div');
+    item.classList.add('leaderboard_item');
 
-        }, 10);
+    // create an array with the values from the given dictionary
+    let array = Array.from(Object.values(itemDataDictionary));
+
+    // for each item in the array:
+    array.forEach((element, index) => {
+        let p = document.createElement('p');
+        p.classList.add('leaderboard_item_component');
+        p.innerText = element;
+        item.appendChild(p);
     });
+
+    return item;
 }
 
 async function getScoreboardData(loadingScoreMsg) {
@@ -470,14 +575,6 @@ async function getScoreboardData(loadingScoreMsg) {
     });
 }
 
-/*
-on submit
-    send data
-    .then (load scoreboard)
-
-send data:
-
-*/
 
 function loadFlags(data) {
 
