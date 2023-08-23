@@ -50,15 +50,49 @@ var currentTime = 99.99 * 1000;
 var lvl = 0;
 // counts the player's mistakes
 var errorCount = 0;
+// how many users can the leaderboard display
+const leaderboardCapacity = 30;
+const pladeholderFlagImgSrc = '/static/images/world.png';
 
 
 // ----------------------------------------------------------       EVENT LISTENERS
 document.addEventListener('DOMContentLoaded', (event) => {
 
     openMessagePre(nameModalElement, true);
+    return;
+    test()
+    .then(() => {
+        console.log('END');
+    });
     //openMessagePre(leaderboardModalElement, true);
 
 });
+
+async function test() {
+
+    await new Promise((resolve, reject) => {
+        console.log('starting promise 1');
+        setTimeout(() => {
+            console.log('promise 1 body');
+            resolve();
+        }, 1000);
+        console.log('finishing promise 1');
+    })
+    .finally(() => {
+        console.log('FINALLY promise 1');
+    });
+
+    console.log('normal after promise 1');
+
+    await new Promise((resolve, reject) => {
+        console.log('starting promise 2');
+        setTimeout(() => {
+            console.log('promise 2 body');
+            resolve();
+        }, 1000);
+        console.log('finishing promise 2');
+    });
+}
 
 // triggers each time the player presses a button on the calculator
 document.addEventListener('click', (event) => {
@@ -116,6 +150,8 @@ nameForm.addEventListener('submit', (event) => {
     // prevent default, we will handle the request by fetch.
     event.preventDefault();
 
+    nameForm.name.disabled = true;
+
     let name = nameForm.name.value;
 
     // client side data validation for the name
@@ -132,17 +168,24 @@ nameForm.addEventListener('submit', (event) => {
     }
 
     // close the 'insert name' message
-    closeMessage(nameModalElement, false)
+    closeMessage(nameModalElement, false, false)
     .then(()=> {
 
         sendScore2(name, lvl)
-        .then(()=> {
+        .then((scoreId)=> {
 
-            showLeaderboard()
+            showLeaderboard(scoreId)
             .then(() => {
                 console.log('SCOREBOARD DONE');
             });
 
+        })
+        .catch((error) => {
+            console.log('Error on sendScore2:' + error.message);
+            openMessagePre(nameModalElement, false)
+            .then(() => {
+                nameForm.name.disabled = false;
+            });
         });
     });
 });
@@ -344,12 +387,13 @@ function printThankYou() {
     }
 }
 
-// resolved once the data has been sent to the server
-function sendScore2(user, score, loadingModal=undefined) {
+// resolved once the data has been sent to the server OR if the username for that score
+// is taken (in that case it calls reject())
+function sendScore2(username, score) {
     
     // this is the data object we will send as a json
     const userData = {
-        user: user,
+        username: username,
         score: score,
     };
 
@@ -366,28 +410,58 @@ function sendScore2(user, score, loadingModal=undefined) {
         openMessage(false, ['Sending your score to the server', '. . . '])
         .then((loadingMsg) => {
             // then start a fetch request
-            fetch('/update', requestObject)
+            fetch('/send_score', requestObject)
             .then((response) => {
                 // then process the response
 
                 // if response was 200 OK
                 if(response.status == 200) {
-                    
+
+                    // this returns a promise that we can .then after
+                    return response.json();
+                }
+                else {
+                    // if response not 200 OK, throw an error
+                    throw new Error("Error while uploading score");
+                }
+            })
+            .then(data => {
+                // process response
+
+                // if data is duplicate
+                if(data.message === 'duplicate') {
+                    // close loading message
+                    closeMessage(loadingMsg)
+                    .then(()=> {
+                        // then open msg telling user to use different name
+                        openMessage(false, ['There is already a record with this username and score', 'Please select another username'], false, 'Ok', (e) => {
+                            // on click
+
+                            // close message
+                            closeMessage(e.target.parentNode)
+                            .then(() => {
+                                // then reject
+                                reject(new Error(data.message));
+                            });
+                        });
+                    })
+                }
+                else {
+
+                    console.log(data.message);
                     // close loading message
                     closeMessage(loadingMsg)
                     .then(() => {
                         // then resolve
-                        resolve();
+                        resolve(data.score_id);
                     });
                 }
-                else {
-                    // if response not 200 OK, throw an error
-                    throw new Error('There was an error while sending the data');
-                }
+
             })
             .catch((error) => {
                 // handle fetch request errors
 
+                console.log(error);
                 //close the loading message
                 closeMessage(loadingMsg)
                 .then(() => {
@@ -398,10 +472,10 @@ function sendScore2(user, score, loadingModal=undefined) {
                         closeMessage(e.target.parentNode)
                         .then(() => {
                             // then call sendScore recursively
-                            sendScore2(user, score)
-                            .then(() => {
+                            sendScore2(username, score)
+                            .then((scoreId) => {
                                 // then once sendScore has been solved (aka data sent), resolve
-                                resolve();
+                                resolve(scoreId);
                             });
                         });
                     });
@@ -414,28 +488,24 @@ function sendScore2(user, score, loadingModal=undefined) {
 }
 
 
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
-
 // handles the loading and displaying of the leaderboard
-function showLeaderboard() {
+function showLeaderboard(scoreId) {
 
     // to be resolved once leaderboard is displayed
     const promise = new Promise ((resolve, reject) => {
+
         // open loading message
         openMessage(false, ['Loading global rankins', '. . .'])
         .then((loadingMsg) => {
             // then fetch for leaderboard data
-            fetch('/get_leaderboard')
+
+            fetch(`/get_leaderboard?amnt=${leaderboardCapacity}`)
             .then((response) => {
                 // then handle response
 
                 if(response.status == 200) {
 
-                    return response.text();
+                    return response.json();
                 }
                 else {
                     throw new Error('Response came out NOT OK');
@@ -444,23 +514,30 @@ function showLeaderboard() {
             .then((data) => {
                 // if response ok, then handle data
 
-                // updates the leaderboard modal with retrieved data
-                let dataArray = JSON.parse(data);
-                // updates the leaderboard modal with the new data
-                updateLeaderboardModal(dataArray);
-                // close the loading message
-                closeMessage(loadingMsg)
-                .then(() => {
-                    // then open the leaderboard modal
-                    openMessagePre(leaderboardModalElement)
-                    .then(() => {
-                        // then resolve
-                        resolve();
+                // load flag images and get flagObjects array
+                getFlagsArray(data)
+                .then((flags) => {
+                    // then update the leaderboard
+
+                    console.log('All data needed for leaderboard has been resolved');
+                    console.log(flags);
+                    updateLeaderboard(data, flags);
+                    closeMessage(loadingMsg)
+                    .then(()=> {
+                        openMessagePre(leaderboardModalElement)
+                        .then(()=> {
+                            resolve();
+                        });
                     });
+                })
+                .catch((error) => {
+                    console.log('Error: ' + error.message);
                 });
             })
             .catch(error => {
                 // if an error happens
+
+                console.log(error.message);
 
                 // close loading message
                 closeMessage(loadingMsg)
@@ -486,98 +563,126 @@ function showLeaderboard() {
     return promise;
 }
 
-function updateLeaderboardModal(data) {
+function getFlagsArray(data) {
 
-    // clean all items from leaderboard_container
-    let container = leaderboardModalElement.querySelector('#leaderboard_container');
+    let flags = [];
 
-    // remove all items from leaderboard (if any)
-    while(container.lastChild) {
-        container.removeChild(container.lastChild);
+    // populate array with objects that link a country code with an Image
+    data.forEach((element) => {
+        
+        let contains = !flags.every((f)=> {
+            return !(f.country === element.loc);
+        });
+
+        if(contains) {
+            return;
+        }
+
+        flags.push({country: element.loc, img: new Image()});
+    });
+
+
+    let promise = new Promise((resolve, reject) => {
+        // get a dictionary with flaf images
+
+        let flagPromises = [];
+
+        // for each element, create a promise that resolves once the Image
+        // of that  element has fully loaded
+        // add promise to flagPromises
+        flags.forEach((element) => {
+            let imgLoadPromise = new Promise((imgLoadResolve, imgLoadReject) => {
+                
+                element.img.src = `https://flagsapi.com/${element.country}/shiny/32.png`;
+                // if the image loaded, resolve
+                element.img.onload = ()=> {imgLoadResolve(element);};
+                // if the image could not load, set source to our flag placeholder
+                // (this is recursive since this basically starts a new load)
+                element.img.onerror = (event)=>{
+                    console.log('Flag error. Using placeholder.');
+                    event.target.src = pladeholderFlagImgSrc;
+                };
+            })
+            .catch((error) => {
+                // handle any other kind of error that might arise
+                console.error('Uknown error while loading the flag: ' + error.message);
+            });
+
+            flagPromises.push(imgLoadPromise);
+        });
+
+
+        // once all images have finished the loading attempt
+        Promise.allSettled(flagPromises)
+        .then((results) => {
+
+            // we are already handling the image load on their own promise.
+
+            console.log('All images resolved');
+            resolve(flags);
+        });
+    })
+    .catch(e => {
+        console.error('Error while updating leaderboard: ' + e.message);
+    });
+
+    return promise;
+}
+
+function updateLeaderboard(data, flagsArray) {
+
+    // for each data element, we create a leaderboard item
+
+    const leaderboardItemCont = leaderboardModalElement.querySelector('#leaderboard_item_container');
+
+    // clear leaderboard (just in case we dont have to really, ill be empty)
+    while(leaderboardItemCont.lastChild) {
+        leaderboardItemCont.removeChild(leaderboardItemCont.lastChild);
     }
 
-    data.forEach((element) => {
-        let item = createLeaderboardItem(element);
-        container.appendChild(item);
+    data.forEach((element, index)=> {
+
+        // get the flag image for this element
+        let flagImg = '';
+        for(let i = 0; i < flagsArray.length; i++) {
+            if(flagsArray[i].country == element.loc) {
+                flagImg = flagsArray[i].img;
+                break;
+            }
+        }
+
+        let item = createLeaderboardItem(element.user, element.score, index + 1, flagImg);
+        leaderboardItemCont.appendChild(item);
     });
+
 }
 
-function createLeaderboardItem(itemDataDictionary) {
+// creates a leaderboard element with given values and returns it
+function createLeaderboardItem(username, level, rank, flagImg) {
 
+    // create elements
     let item = document.createElement('div');
+    let name = document.createElement('p');
+    let score = document.createElement('p');
+    let flag = document.createElement('img');
+    
+    // assign values to elements
+    name.innerText = `${rank} - ${username}`;
+    score.innerText = level;
+    flag.src = flagImg.src;
+    
+    // assign them their css classes
     item.classList.add('leaderboard_item');
-
-    // create an array with the values from the given dictionary
-    let array = Array.from(Object.values(itemDataDictionary));
-
-    // for each item in the array:
-    array.forEach((element, index) => {
-        let p = document.createElement('p');
-        p.classList.add('leaderboard_item_component');
-        p.innerText = element;
-        item.appendChild(p);
-    });
+    name.classList.add('leaderboard_item_component');
+    score.classList.add('leaderboard_item_component');
+    flag.classList.add('leaderboard_item_component', 'leaderboard_item_image');
+    
+    // append item component elements to item element
+    item.appendChild(name);
+    item.appendChild(score);
+    item.appendChild(flag);
 
     return item;
-}
-
-async function getScoreboardData(loadingScoreMsg) {
-
-
-    const requestObject = {
-        method: 'GET',
-        headers: {'Content-Type': 'application/json'}
-    };
-
-    // fetch scoreboard data
-    await fetch('/get_scoreboard', requestObject)
-    .then((response) => {
-        // handle response
-        if(response.status == 200) {
-            return response.json();
-        }
-        else {
-            throw new Error(response.text().message);
-        }
-    })
-    .then((data) => {
-        // response was OK, so we close the loading message and load the scoreboard
-        console.log(data);
-        console.log(data);
-        console.log(data);
-        console.log(data);
-
-        popOutMessage(loadingScoreMsg, () => {
-            // TODO: draw scoreboard
-            let flags = loadFlags(data);
-            // drawScoreboard(data, flags);
-            // ALSO: What about the flags, we have not loaded them yet.
-            // Try to load each flag once, get unique names on a list and
-            // for each load a flag
-        });
-    })
-    .catch((error) => {
-        // if the response had some error popping in, close loading
-        // message and open error message
-        console.log(error);
-        popOutMessage(loadingScoreMsg, () => {
-            const errMsg = popInMessage(true, ['An error accured while loading the scoreboard'], 'Retry', () => {
-                popOutMessage(errMsg, () => {
-                    // if the user clicls Try again, try to load the scoreboard again
-                    loadScoreBoard();
-                });
-            });
-        });
-    })
-    .finally(() => {
-        // debug
-        console.log('scoreboard process finished.')
-    });
-}
-
-
-function loadFlags(data) {
-
 }
 
 // ----------------------------------------------------------       ARRAY GRID SEARCH
@@ -930,366 +1035,6 @@ function checkUsername(name) {
 
     return returnObject;
 }
-
-
-/*
-// pops an error message just below the subject element
-function createMessage_OLD(subject, messageLines, buttonText, buttonCallBack) {
-
-    // set up message line elements
-    let messageChildren = [];
-    messageLines.forEach((line, index) => {
-        messageChildren.push(document.createElement('p'));
-        messageChildren[index].innerText = line;
-        messageChildren[index].classList.add('message_line');
-    });
-    
-    // set up message button
-    let buttonElement = document.createElement('button');
-    buttonElement.innerText = buttonText;
-    buttonElement.classList.add('message_button');
-    
-    // set up dialog element
-    let dialogElement = document.createElement('dialog');
-    messageChildren.forEach((element) => {
-        dialogElement.appendChild(element);
-    });
-    dialogElement.appendChild(buttonElement);
-    dialogElement.classList.add('message_dialog');
-    
-    //set up container element
-    let containerElement = document.createElement('div');
-    containerElement.appendChild(dialogElement);
-    subject.appendChild(containerElement);
-    containerElement.classList.add('message_container');
-    
-    buttonElement.addEventListener('click', buttonCallBack);
-    dialogElement.show();
-
-    return containerElement;
-}
-
-// pops a message, returns message element (dialog element)
-function createMessage(isError, messageLines, buttonText='', buttonCallBack=undefined) {
-
-    // set up message line elements
-    let lines = [];
-    messageLines.forEach((line, index) => {
-        lines.push(document.createElement('p'));
-        lines[index].innerText = line;
-        lines[index].classList.add('message_line');
-    });
-    
-    // set up message button
-    let buttonElement;
-    if(buttonCallBack) {
-        buttonElement = document.createElement('button');
-        buttonElement.innerText = buttonText;
-        buttonElement.classList.add('message_button');
-        buttonElement.addEventListener('click', buttonCallBack);
-    }
-    
-    // set up dialog element
-    let dialogElement = document.createElement('dialog');
-    lines.forEach((element) => {
-        dialogElement.appendChild(element);
-    });
-
-    if(buttonCallBack) {
-        dialogElement.appendChild(buttonElement);
-    }
-
-    dialogElement.classList.add('message_dialog');
-    if(isError) {
-        dialogElement.classList.add('message_dialog_error_theme');
-    }
-    document.body.appendChild(dialogElement);
-
-    //dialogElement.showModal();
-
-    return dialogElement;
-}
-
-// opens a message, manages backdrop
-function popInMessage(isError, messageLines, buttonText='', buttonCallback=undefined, popCallback=undefined) {
-
-    // creates a message
-    const message = createMessage(isError, messageLines, buttonText, buttonCallback);
-
-    // calculate when to pop the message modal (either now or after backdrop fade)
-    const timeToPopModal = backdropState == -1 ? backdropFadeDuration : 0;
-
-    setTimeout(() => {
-
-        modalPop2(message, 1, messagePopDuration, messageFadeDuration, popCallback);
-
-    }, timeToPopModal);
-
-    // call the pop callback after the pop
-    if(popCallback) {
-
-        setTimeout(() => {
-
-            popCallback();
-
-        }, messagePopDuration + messageFadeDuration);
-    }
-
-    // call backdrop fade
-    backdropFade(1, backdropFadeDuration);
-
-    return message;
-}
-
-function popOutMessage(messageElement) {
-    // closes the message
-
-    const timeToFadeBackdrop = backdropState == 1 ? messagePopDuration + messageFadeDuration : 0;
-    modalPop2(messageElement, -1, messagePopDuration, messageFadeDuration);
-
-    setTimeout(() => {
-        backdropFade(-1, backdropFadeDuration);
-    }, timeToFadeBackdrop);
-}
-
-// ----------------------------------------------------------       ANIMATIONS
-
-// open/close modal animation
-// modal has w:h anc background color
-// takes care of children
-function modalPop2(modalElement, dir, popTime, fadeTime) {
-
-    // just in case
-    dir = dir > 0 ? 1 : -1;
-
-    if(dir > 0) {
-        // if we meant to open the modal we first set opacity to  so that we dont
-        // see it full dimensions for a tick or two
-        modalElement.style.opacity = 0;
-    }
-
-    // get all interactible children and disable them. Add any other element to the list below
-    let interactibles = Array.from(modalElement.querySelectorAll('button, textarea, input'));
-
-    // prevents the scrollbar to show while the pop animation happens.
-    modalElement.style.overflow = 'hidden';
-
-    interactibles.forEach((element) => {
-        element.disabled = true;
-    });
-
-    // we then call open on it. If we meant to open it this is the step and it not
-    // its already openened so it doesnt matter.
-    // we need to always first open it so that the computed values come out int pixel
-    // units. This will allow us to open and close it multiple times without the 
-    // modal breaking due to computed values using two measures (% and px).
-    // he reason for this is that a modal that has not been opened before will
-    // stick to returning properties with the units the way we specified them
-    // in css, but after they have been opened once they will stick to pixels
-    modalElement.showModal();
-
-    // animation tick
-    let timeInterval = 10;
-    // element's children
-    let children = Array.from(modalElement.children);
-    // gets computed size of the element, since its been opened already, units will be px
-    let temp = window.getComputedStyle(modalElement).width;
-    let modalOriginalWidth = parseInt(temp.slice(0, temp.length - 2));
-    temp = window.getComputedStyle(modalElement).height;
-    let modalOriginalHeight = parseInt(temp.slice(0, temp.length - 2));
-
-    let modalCurrWidth = dir == 1 ? 0 : modalOriginalWidth;
-    let modalCurrHeight = dir == 1 ? 0 : modalOriginalHeight;
-    let modalTargetWidth = dir == 1 ? modalOriginalWidth : 0;
-    let modalTargetHeight = dir == 1 ? modalOriginalHeight : 0;
-
-    // how much should the size change by each tick
-    let widthIncrement = modalOriginalWidth / popTime * timeInterval;
-    let heightIncrement = modalOriginalHeight / popTime * timeInterval;
-
-    // save children original opacity and set its start and target values
-    let targetOpacity = [];
-    let originalOpacity = [];
-    children.forEach((element) => {
-
-        originalOpacity.push(window.getComputedStyle(element).opacity);
-
-        if(dir > 0) {
-
-            targetOpacity.push(parseFloat(originalOpacity[originalOpacity.length - 1]));
-            element.style.opacity = 0;
-            return;
-        }
-        targetOpacity.push(0);
-    });
-    
-    // timeout for pop, happens first if opening, second if closing
-    setTimeout(() => {
-
-        // children fade in/out animation
-        let fadeAnimation = setInterval(() => {
-
-            children.forEach((element, index) => {
-
-                let opacityIncrement = originalOpacity[index] / fadeTime * timeInterval;
-
-                element.style.opacity = parseFloat(window.getComputedStyle(element).opacity) + (opacityIncrement * dir);
-            });
-
-            let complete = children.every((element, index) => {
-                // im really proud of this one below rhere: look at it boi look at it
-                return (targetOpacity[index] + (parseFloat(element.style.opacity) * -dir) <= 0);
-            });
-
-            if(complete) {
-
-                // enable all interactible elements back
-                interactibles.forEach((element) => {
-                    element.disabled = false;
-                });
-
-                // note on not deleting in-line style values for the children:
-                // in this case we dont do that because its just avalue from 0
-                // to 1, there is no conflict like % and px as with the modal.
-                // So even if we resize the screen and trigger @media queries
-                // all will be fine
-
-                clearTimeout(fadeAnimation);
-            }
-
-        }, timeInterval);
-
-    }, dir > 0 ? popTime : 0);
-
-    // timeout for face, happens first if closing, second if opening
-    setTimeout(() => {
-
-        
-        // modal pop in/out animation
-        let popAnimation = setInterval(()=>{
-            
-            modalCurrWidth += widthIncrement * dir;
-            modalCurrHeight += heightIncrement * dir;
-            
-            modalElement.style.width = `${modalCurrWidth}px`;
-            modalElement.style.height = `${modalCurrHeight}px`;
-
-            // we set this here to avoid seen it full dimensions for a tick or two
-            modalElement.style.opacity = 1;
-            
-            // im really proud of this one below rhere: look at it boi look at it
-            if(modalTargetWidth + (modalCurrWidth * -dir) <= 0) {
-
-                modalElement.style.width = `${modalTargetWidth}px`;
-                modalElement.style.height = `${modalTargetHeight}px`;
-                
-                // if we meant to close the modal:
-                if(dir < 0) {
-                    modalElement.close();
-                    
-                    modalElement.style.height = `${modalOriginalHeight}px`;
-                    modalElement.style.width = `${modalOriginalWidth}px`;
-                    
-                    
-                    children.forEach((element, index) => {
-                        element.style.opacity = originalOpacity[index];
-                    });
-                }
-
-                // we let css values take over again to avoid a display conflict if
-                // the user changes the aspect ratio (% and px)
-                modalElement.removeAttribute('style');
-
-                clearInterval(popAnimation);
-            }
-
-        }, timeInterval);
-
-    }, dir > 0 ? 0 : fadeTime);
-}
-
-function backdropFade(dir, duration) {
-
-    // if the state we want to set the backdrop to is the state the backdrop is already
-    // on, then we dont need to do anything.
-    if((backdropState == 1 && dir > 0) ||
-        backdropState == 0 && dir < 0) {
-        return;
-    }
-
-    let messages = document.querySelectorAll('.message_dialog').length;
-
-    // if we have more than one message open but want to close the backdrop, dont.
-    if (messages > 1 && dir == -1) {
-        return;
-    }
-
-    // set backdrop state
-    backdropState = dir;
-
-    // while backdrop fade is in progress, we direct all pointer events to it
-    backdropElement.style.pointerEvents = 'auto';
-
-    // update tick
-    let timeInterval = 10;
-    let opacityIncrement = 1.0 / duration * timeInterval;
-    let opacityTarget = backdropElement.style.opacity == 0 ? 1.0 : 0.0;
-
-    let fadeAnimation = setInterval(() => {
-
-        // every tick, we mod the opaciy
-        backdropElement.style.opacity = parseFloat(window.getComputedStyle(backdropElement).opacity) + (opacityIncrement * dir);
-
-        duration -= timeInterval;
-
-        if(duration <= 0) {
-
-            backdropElement.style.opacity = opacityTarget * dir;
-            // if backdrop faded out, let pointer events go trough
-            backdropElement.style.pointerEvents = dir > 0 ? 'auto' : 'none';
-            clearInterval(fadeAnimation);
-        }
-        
-    }, timeInterval);
-}
-
-// same as modalPop2 but accepts backdropTime:
-// >= 0: time it takes for the backdrop to fade in/out
-// < 0: leave backdrop as it is
-// behaivour:
-// if opening modal: backdrop fades in, then modal opens
-// if closing modal: modal closes, then backdrop fades out
-// 0 or negative backdropTime will just leave the backdrop as it is
-// use inBetTime to leave some time between the backdrop fade and the modal pop
-function modalPop3(modalElement, dir, popTime, fadeTime, backdropTime=0, inBetTime=0, callback=undefined) {
-
-    // modal
-    setTimeout(() => {
-
-        modalPop2(modalElement, dir, popTime, fadeTime, callback);
-
-    }, dir > 0 ? backdropTime + inBetTime : 0);
-
-    if(callback) {
-
-        setTimeout(() => {
-            callback();
-        }, popTime + fadeTime + inBetTime);
-    }
-
-
-    if(backdropTime <= 0) return;
-
-    // backdrop
-    setTimeout(() => {
-
-        console.log('bdrop');
-        backdropFade(dir, backdropTime);
-
-    }, dir > 0 ? 0 : popTime + fadeTime);
-
-}
-*/
 
 // ----------------------------------------------------------       DEBUG
 

@@ -73,31 +73,18 @@
 
         <dialog id="leaderboard" class="parent_modal">
             <div id="leaderboard_container">
-                <div class="leaderboard_item">
-                    <div class="leaderboard_item_component">#00 - name</div>
-                    <div class="leaderboard_item_component">LVL</div>
-                    <div class="leaderboard_item_component">image</div>
+                <p class="leaderboard_text">Global leaderboard</p>
+                <div id="leaderboard_item_container">
                 </div>
-                <div class="leaderboard_item">
-                    <div class="leaderboard_item_component">#00 - name</div>
-                    <div class="leaderboard_item_component">LVL</div>
-                    <div class="leaderboard_item_component">image</div>
+                <p class="leaderboard_text">Your score</p>
+                <div id="user_score" class="leaderboard_item">
+                    <p class="leaderboard_item_component">#00 - name</p>
+                    <p class="leaderboard_item_component">000</p>
+                    <img class="leaderboard_flag" src="">
                 </div>
-                <div class="leaderboard_item">
-                    <div class="leaderboard_item_component">#00 - name</div>
-                    <div class="leaderboard_item_component">LVL</div>
-                    <div class="leaderboard_item_component">image</div>
-                </div>
-            </div>
-        </dialog>
-        
-        <!-- NOT IN USE RN, REMOVE IF NOT USED IN THE FUTURE -->
-        <dialog id="loading_modal" class="parent_modal">
-            <div id="loading_container">
-                <div id="loading_message">
-                    - loading -
-                </div>
-                <p id="loading_icon">. . .</p>
+                <form id="playagain_form" action="/" method="get">
+                    <button type="submit" id="playagain_button">Play again</button>
+                </form>
             </div>
         </dialog>
     </body>
