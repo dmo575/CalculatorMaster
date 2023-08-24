@@ -4,7 +4,6 @@ var backdropState = -1;
 var backdropFadeDuration = 150;
 var messagePopDuration = 100;
 var messageFadeDuration = 100;
-var messagesCounter = 0;
 
 init();
 
@@ -58,6 +57,7 @@ function createMessageModal(isError, messageLines, buttonText='', buttonCallBack
     return dialogElement;
 }
 
+// creates and opens a message (modal)
 export function openMessage(isError, contents, callBackdrop=false, buttonText='', buttonCallback=undefined) {
 
     const messageModal = createMessageModal(isError, contents, buttonText, buttonCallback);
@@ -66,6 +66,7 @@ export function openMessage(isError, contents, callBackdrop=false, buttonText=''
 
 }
 
+// opens an already existing message (modal)
 export function openMessagePre(messageModal, callBackdrop=false) {
 
     const promise = new Promise((resolve, reject) => {
@@ -94,7 +95,7 @@ export function openMessagePre(messageModal, callBackdrop=false) {
     return promise;
 }
 
-// pops out a modal message
+// closes a given modal
 export function closeMessage(messageElement, callBackdrop=false, delOnClose=true) {
 
     const promise = new Promise((resolve, reject) => {

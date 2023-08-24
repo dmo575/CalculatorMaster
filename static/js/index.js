@@ -3,13 +3,13 @@ import vec from './vec.js';
 import { openMessage, closeMessage, openMessagePre } from './message.js';
 import { printGridArray, printGridButton } from './debug.js';
 
-
-// this will hold a grid in the form of a JS array
+// stores the button layout in the form of a 2D JS array
 const arrayGrid = [];
 // calculator button symbols
 const buttonSymbols = [
     '6','3','2','5','8','9','/','*','-','+','=','0','.','1','4','7'
 ];
+// const data for "Thank you 4 Playing" button layout
 const thanksForPlaying = ['THANK', 'YOU', '4', 'PLAYING'];
 const wordColors = ['red', 'green', 'blue', 'yellow'];
 
@@ -30,7 +30,6 @@ const nameForm = document.querySelector('#name_form');
 const introModalElement = document.querySelector('#intro_modal');
 const nameModalElement = document.querySelector('#name_modal');
 const leaderboardModalElement = document.querySelector('#leaderboard');
-const loadingModalElement = document.querySelector('#loading_modal');
 
 // buttons
 const introModalButtonElement = document.querySelector('#btn_start');
@@ -56,12 +55,13 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 
 
 // ----------------------------------------------------------       EVENT LISTENERS
+
+// start point
 document.addEventListener('DOMContentLoaded', (event) => {
 
+    // Opens the welcome/instructions message
+    //openMessagePre(introModalElement, true);
     openMessagePre(nameModalElement, true);
-    return;
-    openMessagePre(leaderboardModalElement, true);
-
 });
 
 // triggers each time the player presses a button on the calculator
@@ -70,41 +70,37 @@ document.addEventListener('click', (event) => {
     // if we clicked a button
     if(!event.target.classList.contains('button')) return;
 
-    next();
-    //printThankYou();
-    return;
-
-    // 1 - put button on the screen
-
     // get button's symbol
     let symbol = event.target.dataset.symbol;
 
-    // add it to screen
+    // add it to screen and upate it
     screen += symbol;
-
-    // update screen
     screenElement.innerText = screen;
 
-    // 2 - evaluate screen and proceed acordingly
-
-    // check if screen matches equation
+    // check if whats on the screen aligns with the current equation
     for(let i = 0; i < screen.length; i++) {
 
         if(screen[i] != equation[i]) {
+            // if it doesnt, update errors and clear the screen
             updateErrors();
             clearScreen();
+            break;
         }
     }
 
-    // if the equation has been completed:
+    // if the equation has been completed, go next level
     if(screen.length == equation.length) {
         next();
     }
 });
-
-// starts the 3-0 countdown, closes intro modal
+// triggers when the player clicks 'Start' on the intro modal
 introModalButtonElement.addEventListener('click', (event) => {
-    popOutMessage(introModalElement, startCountDown);
+    
+    // close intro message and start the countdown
+    closeMessage(introModalElement, true, true)
+    .then(() => {
+        startCountDown();
+    });
 });
 
 // prevents the user from closing any modal by pressing the Esc keyword
@@ -114,15 +110,15 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-// this triggers when the suer hits enter after entering its name
+// triggers when the user hits enter on the 'enter a username' window
 nameForm.addEventListener('submit', (event) => {
     
     // prevent default, we will handle the request by fetch.
     event.preventDefault();
 
-    nameForm.name.disabled = true;
+    nameForm.username.disabled = true;
 
-    let username = nameForm.name.value;
+    let username = nameForm.username.value;
 
     // client side data validation for the name
     let checkObject = checkUsername(username);
@@ -130,33 +126,39 @@ nameForm.addEventListener('submit', (event) => {
     // if name is invalid, send mesage to the user with reason.
     if(!checkObject.pass) {
 
+        // open an error message and inform user of error
         openMessage(true, checkObject.errorArray, false, 'OK', (e) => {
-            closeMessage(e.target.parentNode);
+            
+            // on click, close the erro window
+            closeMessage(e.target.parentNode)
+            .then(() => {
+                // enable input field again
+                nameForm.username.disabled = false;
+            });
         });
-        
-        nameForm.name.disabled = false;
+
         return;
     }
 
     // close the 'insert name' message
     closeMessage(nameModalElement, false, false)
     .then(()=> {
+
         // then attempt to send the score
         sendScore(username, lvl)
         .then((scoreData)=> {
+
             // then if success, show leaderboard
-            showLeaderboard(scoreData)
-            .then(() => {
-                console.log('SCOREBOARD DONE');
-            });
+            showLeaderboard(scoreData);
         })
         .catch((error) => {
-            // handle sendScore2 errors
-            console.log('Error on sendScore2:' + error.message);
-            // 
+            // handle errors on seinding the score
+
+            console.log(error.message);
+            // reopen the 'insert name' message to allow for a try again
             openMessagePre(nameModalElement, false)
             .then(() => {
-                nameForm.name.disabled = false;
+                nameForm.username.disabled = false;
             });
         });
     });
@@ -164,33 +166,38 @@ nameForm.addEventListener('submit', (event) => {
 
 // ----------------------------------------------------------       MAIN FUNCTIONS
 
+// starts the game
+// called once the initial countdown is over
 function startGame() {
+    // start the countdown of the game
     startGameTime();
+    // loads the next calculator and equation
     next();
 }
 
-// starts the 3-0 countdown
+// starts the 3 second countdown countdown, calls startGame() after countdown
 function startCountDown() {
 
-    // how often we will update this countdown interal (miliseconds)
+    // how often we will update this countdown interval (miliseconds)
     let updateRate = 10;
     // start time (seconds)
     let time = 4.0;
     let computedFontSize = window.getComputedStyle(countdownContainer).fontSize;
-    // we substract 2 to remove the 'px' from the string
+    // original size of the text in pixles
+    // we substract 2 to remove the 'px' from the string we are parsing
     let originalSize = parseInt(computedFontSize.slice(0, computedFontSize.length - 2));
     
     // set the initial value for the countdown text and show the modal
     countdownContainer.innerText = time;
     countdownModalElement.showModal();
 
-    // every 'initialCountdownTI' miliseconds (10ms):
+    // every tick:
     let cd = setInterval(() => {
 
         // get current size (returns a string with px at the end)
         computedFontSize = window.getComputedStyle(countdownContainer).fontSize;
 
-        // get the actual value from the size we got above
+        // parse the size into an int
         let currSize = parseInt(computedFontSize.slice(0, computedFontSize.length - 2));
 
         // shrink the value by a bit (10 pixles)
@@ -222,7 +229,7 @@ function startCountDown() {
     }, updateRate);
 }
 
-// starts the game's countdown and executes code when it finishes
+// starts the game's countdown and executes endGame() when it finishes
 function startGameTime() {
 
     let timerObject = setInterval(() => {
@@ -231,6 +238,7 @@ function startGameTime() {
         timerElement.innerText = (currentTime / 1000).toFixed(2);
 
         if(currentTime == 0) {
+            // ends the game
             endGame();
             clearInterval(timerObject);
         }
@@ -238,9 +246,9 @@ function startGameTime() {
     }, timerInterval);
 }
 
-// goes to the next problem to solve
+// loads the new level
 function next() {
-    levelUp(); // update the lvl var and play lvl up UI animation
+    levelUp(); // updates the lvl
     clearScreen(); // clears the calculator screen
     makeCalculator(lvl); // generates a random calculator based on level
     makeEquation(lvl); // generates a random equation based on level
@@ -255,33 +263,37 @@ function clearScreen() {
 // makes a new calculator based on level
 function makeCalculator(lv, sym=undefined, gridLen=32, searchMethod=arrayGridSearchSpiral) {
     
+    // initializes an array with a given length
     initArrayGrid(gridLen);
+    // set max and min for button properties based on current level
     let symbols = sym == undefined ? getRanSymbols() : sym;
-    let minLen = parseInt(1 + 10 / 100 * lv);
-    let maxLen = parseInt(1 + 20 / 100 * lv);
-    let minRound = parseInt(1 + 50 / 100 * lv);
-    let maxRound = parseInt(1 + 200 / 100 * lv);
-    maxRound = maxRound > 100 ? 100: maxRound;
-    minRound = minRound > 30 ? 30 : minRound;
+    let btnMinLen = parseInt(1 + 10 / 100 * lv);
+    let btnMaxLen = parseInt(1 + 20 / 100 * lv);
+    let btnMinRound = parseInt(1 + 50 / 100 * lv);
+    let btnMaxRound = parseInt(1 + 200 / 100 * lv);
+    btnMaxRound = btnMaxRound > 100 ? 100: btnMaxRound;
+    btnMinRound = btnMinRound > 30 ? 30 : btnMinRound;
 
    // make buttons
    let buttons = [];
-   symbols.forEach((el, index) => {
-       let btn = new Button(el, getRanNumber(minLen, maxLen), getRanNumber(minLen, maxLen), getRanNumber(minRound, maxRound));
-       // this will give the button a start position in the grid array
+   symbols.forEach((el) => {
+       let btn = new Button(el, getRanNumber(btnMinLen, btnMaxLen),
+       getRanNumber(btnMinLen, btnMaxLen), getRanNumber(btnMinRound, btnMaxRound));
+
+       // give the button a start position in the array grid
        btn.start = getStartPosOnArrayGrid(btn, searchMethod);
        buttons.push(btn);
    });
 
-   // this will convert the 'array grid' start position of the buttons to a 
-   // start position on the 'css grid'. Returns the css grid dimensions as a vec
+   // convert the 'array grid' start position of the buttons to a 
+   // start position on the 'css grid'
    convertArrayGridPosToCSSGridPos(buttons);
 
    initCssGrid();
 
    // draw buttons
    buttons.forEach((el) => {
-       drawButton(el, el.start, el.dir);
+       drawButton(el, el.start);
    });
 }
 
@@ -359,8 +371,8 @@ function printThankYou() {
     }
 }
 
-// resolved once the data has been sent to the server OR if the username for that score
-// is taken (in that case it calls reject())
+// sends score to the server
+// returns a promise, resolve returns data about the sent score
 function sendScore(username, score) {
     
     // this is the data object we will send as a json
@@ -369,7 +381,7 @@ function sendScore(username, score) {
         score: score,
     };
 
-    // request data
+    // http request's data
     const requestObject = {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -378,74 +390,85 @@ function sendScore(username, score) {
 
     const promise = new Promise((resolve, reject) => {
 
-        // open 'loading' msg
+        // open a loading msg
         openMessage(false, ['Sending your score to the server', '. . . '])
         .then((loadingMsg) => {
+
             // then start a fetch request
             fetch('/send_score', requestObject)
             .then((response) => {
-                // then process the response
 
+                // then process the response
                 // if response was 200 OK
                 if(response.status == 200) {
 
-                    // this returns a promise that we can .then after
+                    // return the json() promise so we can .then() it below
                     return response.json();
                 }
                 else {
-                    // if response not 200 OK, throw an error
-                    throw new Error("Error while uploading score");
+                    // if response not 200 OK, throw an error and pass the message
+                    throw new Error(response.message);
                 }
             })
-            .then(data => {
-                // process response
+            .then(responseJson => {
+                // process responseJson (json())
 
                 // if data is duplicate
-                if(data.message === 'duplicate') {
-                    // close loading message
+                if(responseJson.message === 'duplicate') {
+
+                    // close the loading message
                     closeMessage(loadingMsg)
                     .then(()=> {
+
                         // then open msg telling user to use different name
                         openMessage(false, ['There is already a record with this username and score', 'Please select another username'], false, 'Ok', (e) => {
-                            // on click
 
+                            // on message's button click:
                             // close message
                             closeMessage(e.target.parentNode)
                             .then(() => {
+
                                 // then reject
-                                reject(new Error(data.message));
+                                reject(new Error(responseJson.message));
                             });
                         });
                     })
                 }
                 else {
+
+                    // if request was accepted:
                     // close loading message
                     closeMessage(loadingMsg)
                     .then(() => {
+                        
                         // then resolve
-                        resolve(data.scoreData);
+                        resolve(responseJson.data);
                     });
                 }
 
             })
             .catch((error) => {
-                // handle fetch request errors
+                // handle any fetch errors
 
-                console.log(error);
+                console.log(error.message);
+
                 //close the loading message
                 closeMessage(loadingMsg)
                 .then(() => {
+
                     // then open an error message with the option to try again
                     openMessage(true, ['Oops !', 'An error acurred while sending the score to the server'],false, 'Try again',  (e) => {
+                        
                         // on click 'try again':
-
                         // close error message
                         closeMessage(e.target.parentNode)
                         .then(() => {
+
                             // then call sendScore recursively
                             sendScore(username, score)
                             .then((scoreData) => {
-                                // then once sendScore has been solved (aka data sent), resolve
+
+                                // then once the recursive sendScore has been solved, resolve this one
                                 resolve(scoreData);
                             });
                         });
@@ -458,6 +481,7 @@ function sendScore(username, score) {
     return promise;
 }
 
+
 // handles the loading and displaying of the leaderboard
 function showLeaderboard(userData) {
 
@@ -467,12 +491,12 @@ function showLeaderboard(userData) {
         // open loading message
         openMessage(false, ['Loading global rankins', '. . .'])
         .then((loadingMsg) => {
-            // then fetch for leaderboard data
 
+            // then fetch for leaderboard data
             fetch(`/get_leaderboard?length=${leaderboardCapacity}`)
             .then((response) => {
-                // then handle response
-
+                // handle response
+                
                 if(response.status == 200) {
 
                     return response.json();
@@ -481,58 +505,64 @@ function showLeaderboard(userData) {
                     throw new Error('Error while retrieving leaderboard data');
                 }
             })
-            .then((leaderboardData) => {
+            .then((leaderboardDataJson) => {
                 // if response ok, then handle data
 
                 // create an array with all the country codes from the leaderboard
                 let countryCodes = [];
-                leaderboardData.forEach((el) => {
-                    let contains = countryCodes.includes(el.country_code);
+
+                leaderboardDataJson.data.forEach((el) => {
+                    let contains = countryCodes.includes(el.countryCode);
 
                     if(!contains) {
-                        countryCodes.push(el.country_code);
+                        countryCodes.push(el.countryCode);
                     }
                 });
 
                 // add the user's score country code data to the countryCodes array
-                if(!countryCodes.includes(userData.country_code)) {
-                    countryCodes.push(userData.country_code);
+                if(!countryCodes.includes(userData.countryCode)) {
+                    countryCodes.push(userData.countryCode);
                 }
 
                 // load all flag images we need once
                 loadFlagImages(countryCodes)
                 .then(flags => {
-                    // we have all the data we need to populate the leaderboard
 
-                    updateLeaderboard(leaderboardData, flags, userData);
+                    // then populate the leaderboard with the aquired data
+                    updateLeaderboard(leaderboardDataJson.data, flags, userData);
+
+                    // close loading message
                     closeMessage(loadingMsg)
                     .then(()=> {
+
+                        // then open the leaderboard window
                         openMessagePre(leaderboardModalElement)
                         .then(()=> {
                             resolve();
                         });
                     });
-                })
-                .catch(error => {
-                    console.log('Error loading the flag images: ' + error.message);
                 });
             })
             .catch(error => {
-                // if an error happens
+                // handle any errors that might have bubbled up during the fetch process
 
                 console.log(error.message);
 
                 // close loading message
                 closeMessage(loadingMsg)
                 .then(() => {
+
                     // then open an error message with a 'Try again' option
                     openMessage(true, ['Error while retrieving leaderboard.'], false, 'Try again', (e) => {
+                    
                         // on 'Try again' click: close the error message
                         closeMessage(e.target.parentNode)
                         .then(() => {
+
                             // then recursively call showLeaderboard
                             showLeaderboard(userData)
                             .then(() => {
+
                                 // then (once leaderboard is displayed), resolve
                                 resolve();
                             });
@@ -546,37 +576,41 @@ function showLeaderboard(userData) {
     return promise;
 }
 
+// given an array of country codes, creates an array of
+// { countryCode: string, img: Image }. this array contains one object per unique
+// country code
 function loadFlagImages(countryCodes) {
     
     let flags = [];
 
     countryCodes.forEach(el => {
-        flags.push({country_code: el, img: new Image()});
+        flags.push({countryCode: el, img: new Image()});
     });
 
     let promise = new Promise((resolve, reject) => {
+        
         // get a dictionary with flaf images
-
         let flagPromises = [];
 
         // for each element, create a promise that resolves once the Image
-        // of that  element has fully loaded
-        // add promise to flagPromises
+        // of that  element has fully loaded. Add promise to flagPromises
         flags.forEach((element) => {
             let imgLoadPromise = new Promise((imgLoadResolve, imgLoadReject) => {
                 
-                element.img.src = `https://flagsapi.com/${element.country_code}/shiny/32.png`;
+                element.img.src = `https://flagsapi.com/${element.countryCode}/shiny/32.png`;
                 // if the image loaded, resolve
                 element.img.onload = ()=> {imgLoadResolve(element);};
                 // if the image could not load, set source to our flag placeholder
                 // (this is recursive since this basically starts a new load)
                 element.img.onerror = (event)=>{
-                    console.log('Flag error. Using placeholder.');
+                    console.log('Error loading flag image. Placeholder provided.');
+                    // this will trigger the onload event again once done so we dont
+                    // have to call imgLoadResolve prematurely here
                     event.target.src = pladeholderFlagImgSrc;
                 };
             })
             .catch((error) => {
-                // handle any other kind of error that might arise
+                // we catch all errors related to image loading here.
                 console.error('Uknown error while loading the flag: ' + error.message);
             });
 
@@ -587,9 +621,6 @@ function loadFlagImages(countryCodes) {
         // once all images have finished the loading attempt
         Promise.allSettled(flagPromises)
         .then((results) => {
-
-            // we are already handling the image load on their own promise.
-
             console.log('All images resolved');
             resolve(flags);
         });
@@ -598,25 +629,27 @@ function loadFlagImages(countryCodes) {
     return promise;
 }
 
+// given the neccessary data, populates the leaderboard element
 function updateLeaderboard(leaderboardData, flags, userData) {
 
     const leaderboardItemCont = leaderboardModalElement.querySelector('#leaderboard_item_container');
     const userScoreContainerElement =  leaderboardModalElement.querySelector('#user_score_container');
 
-    // for each leaderboard data element:
+    // for each leaderboard item element:
     leaderboardData.forEach((element, index)=> {
 
         // identify the image source for its flag
         let flagImgSrc = '';
         for(let i = 0; i < flags.length; i++) {
-            if(flags[i].country_code == element.country_code) {
+            if(flags[i].countryCode == element.countryCode) {
                 flagImgSrc = flags[i].img.src;
                 break;
             }
         }
 
-        // create an item with the element  data
+        // create an item with the given data
         let item = createLeaderboardItem(element.username, element.score, index + 1, flagImgSrc);
+        
         // add it to the leaderboard element
         leaderboardItemCont.appendChild(item);
     });
@@ -625,18 +658,19 @@ function updateLeaderboard(leaderboardData, flags, userData) {
     let userFlagImgSrc = '';
     flags.forEach(el => {
 
-        if(el.country_code == userData.country_code) {
+        if(el.countryCode == userData.countryCode) {
             userFlagImgSrc = el.img.src;
         }
     });
 
     // create the user score item
     let userScoreItem = createLeaderboardItem(userData.username, userData.score, userData.rank, userFlagImgSrc);
+    
     // and add it to its place in the leaderboard
     userScoreContainerElement.appendChild(userScoreItem);
 }
 
-// creates a leaderboard element with given values and returns it
+// creates a leaderboard item element with given values and returns it
 function createLeaderboardItem(username, level, rank, flagImgSrc) {
 
     // create elements
@@ -669,12 +703,13 @@ function createLeaderboardItem(username, level, rank, flagImgSrc) {
 
 // ----------------------------------------------------------       ARRAY GRID SEARCH
 
-// this will scan the grid in a spiral pattern, looking for any empty cells.
+// this will scan the array grid in a spiral pattern, looking for any empty cells.
 // it will call growButtonCheck every time it finds an empty cell, will continue
 // untill it either searches the whole grid or the growButtonCheck returns a position
 function arrayGridSearchSpiral(w, h) {
 
     let gridLen = arrayGrid.length;
+
     // make sure the grid can be zeroed out by 2
     if(gridLen % 2 != 0 || gridLen == 0) {
 
@@ -902,7 +937,7 @@ function convertArrayGridPosToCSSGridPos(buttons) {
     let minVals = new vec(arrayGrid.length, arrayGrid.length);
     let maxVals = new vec();
 
-    // get the lowest and highest X and Y values among all th buttons' positions
+    // get the lowest and highest X and Y values among all the buttons' positions
     buttons.forEach((el) => {
         minVals.x = minVals.x < el.start.x ? minVals.x : el.start.x;
         minVals.y = minVals.y < el.start.y ? minVals.y : el.start.y;
@@ -929,7 +964,7 @@ function convertArrayGridPosToCSSGridPos(buttons) {
 
 // given a button, a start position in a 1 based grid and a positive width and height,
 // this func will add the button to the page's css grid
-function drawButton(btn, start, dir) {
+function drawButton(btn, start) {
     let buttonElement = document.createElement('div');
 
     buttonElement.classList.add('button');
@@ -981,12 +1016,12 @@ function getRanNumber(min, max) {
     // add min to it, this makes it so that your number is min at minimun and
     // max - 1 at maximum (thats why we add the +1, so that min and max are inclusive)
     // floor it, this way we get an integer that is also in range
-    // (^ this algo I found it online but I made sure to understand it before using it ^)
     return Math.floor(Math.random() * (max - min + 1)) + min;
+    // (^ this algo I found it online but I made sure to understand it before using it ^)
 }
 
 // checks given username, returns object with results
-function checkUsername(name) {
+function checkUsername(username) {
 
     let returnObject = {
         pass: true,
@@ -996,7 +1031,7 @@ function checkUsername(name) {
     let forbiddenCharacters = [' ', '?', ',', '=', '(', ')', '+', '-', '*', '%', '.'];
 
     let nameClear = forbiddenCharacters.every((element) => {
-        return !name.includes(element);
+        return !username.includes(element);
     });
 
     // if the provided name contains any of the forbidden characters
@@ -1007,11 +1042,11 @@ function checkUsername(name) {
         return returnObject;
     }
 
-    // if the name contains the minumun length
-    if(name.length < 3) {
+    // if the name length is invalid
+    if(username.length < 3 || username.length > 20) {
 
         returnObject.pass = false;
-        returnObject.errorArray = ['The name must be at least 3 characters long'];
+        returnObject.errorArray = ['The name length must be between 3 and 20 characters'];
         return returnObject;
     }
 
