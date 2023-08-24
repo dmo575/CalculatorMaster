@@ -26,8 +26,11 @@ def hello():
 
 # takes in a json:
 # { username: string, score: integer }
-# returns message and score rank (the position of the score in the rankings):
-# { message: "message", score_rank: string }
+# returns when 200:
+# { message: "message" }
+# { message: "message", rank: "rank", "countryCode": "countrycode" }
+# returns when 400:
+# { message: "message" }
 @app.route("/send_score", methods=["POST"])
 def send_score():
 
@@ -41,9 +44,6 @@ def send_score():
     except Exception as ex:
         return jsonify({"message": "Not a valid json"}), 400
     
-
-    
-
     # check if there is already a score  with that username and score values
     check_data_cursor = db.session.execute(text("SELECT * FROM leaderboard WHERE username = :username AND score = :score"), 
                                     {"username": client_data["username"], "score": client_data["score"]})
@@ -60,62 +60,74 @@ def send_score():
     # country_code = get_country_code(request.remote_addr)
     country_code = get_country_code("4.106.55.210")
 
-    # get the current time
-    time = datetime.now().strftime("%f%S%M%H%d%m%Y")
 
     # Insert new score into table
-    db.session.execute(text("INSERT INTO leaderboard (username, score, country_code, time) VALUES (:username, :score, :country_code, :time)"),
-                    {"username": client_data["username"], "score": client_data["score"], "country_code": country_code, "time": time})
-    
+    db.session.execute(text("INSERT INTO leaderboard (username, score, country_code) VALUES (:username, :score, :country_code)"),
+                    {"username": client_data["username"], "score": client_data["score"], "country_code": country_code})
     db.session.commit()
+    
 
-    # using time and username we get the score_id for the score that we just entered
-    id_result_cursor = db.session.execute(text("SELECT id FROM leaderboard WHERE time = :time AND username = :username"), 
-                       {"time": time, "username": client_data["username"]})
+    # get the score's id
+    id_cursor = db.session.execute(text("SELECT id FROM leaderboard WHERE score = :score AND username = :username"), 
+                       {"username": client_data["username"], "score": client_data["score"]})
 
-    # score_result is a class with various methods for navigating the returned data.
-    # One of those is fetchone(), it returns a touple with the column values of the next
-    # row availible. We know we want the first (and only) row, and the first (and only)
-    # column because we searched for that to happen
-    id = id_result_cursor.fetchone()[0]
+    # fetch the first row and item (we know theres only one row and item)
+    id = id_cursor.fetchone()[0]
+    id_cursor.close()
 
-    id_result_cursor.close()
-
-    # returns the ranking in the leaderboard of the row with the specified id
-    score_cursor = db.session.execute(text(" SELECT COUNT (*) + 1 + (SELECT COUNT (*) FROM leaderboard WHERE score = (SELECT score FROM leaderboard WHERE id = :id) AND username < (SELECT username FROM leaderboard WHERE id = :id)) AS rank FROM leaderboard WHERE score > (SELECT score FROM leaderboard WHERE id = :id)"),
+    # returns the ranking in the leaderboard for the row with the specified id
+    rank_cursor = db.session.execute(text(" SELECT COUNT (*) + 1 + (SELECT COUNT (*) FROM leaderboard WHERE score = (SELECT score FROM leaderboard WHERE id = :id) AND username < (SELECT username FROM leaderboard WHERE id = :id)) AS rank FROM leaderboard WHERE score > (SELECT score FROM leaderboard WHERE id = :id)"),
                                       {"id": id})
     
-    score = score_cursor.fetchone()[0]
-
+    rank = rank_cursor.fetchone()[0]
+    rank_cursor.close()
     
-    return jsonify({"message": f"Score added to leaderboard, ranked {score}", "rank": str(score)}), 200
+    return jsonify({"message": f"Score added to leaderboard, ranked {rank}", 
+                    "scoreData": {
+                        "id": str(id), 
+                        "rank": str(rank), 
+                        "score": str(client_data["score"]), 
+                        "country_code": str(country_code),
+                        "username": str(client_data["username"])}
+                        }),200
+
+
+@app.route("/get_score", methods=["GET"])
+def get_score():
+
+    id = request.args.get("id")
+
+    if(id is None):
+        return jsonify({"message": "id not found"}), 400
+    
+    score_cursor = db.session.execute(text("SELECT username, score, country_code FROM leaderboard WHERE id = :id"), {"id": id})
+    score = score_cursor.fetchone()
+    score_cursor.close()
+
+    if(score is None):
+        return jsonify({"message": "id is invalid"}), 400
+    
+    return jsonify({"message": "Score data found", "data": {"username:": score[0], "score": score[1], "country_code": score[2]}}), 200
 
 
 @app.route("/get_leaderboard", methods=["GET"])
 def get_leaderboard():
 
-    return "Need to fix the cursor and the close() stuff", 400
+    scoreboard_length = request.args.get("length")
 
-    amnt = request.args.get("amnt")
-
-    if amnt is None:
-        return "Ammount not found", 400
-    else:
-        print(amnt)
+    if scoreboard_length is None:
+        return jsonify({"message": "length not found"}), 400
 
     # return the first X players, ordered by score then name
-    result = db.session.execute(text("SELECT * FROM leaderboard ORDER BY score DESC, username ASC LIMIT :ammount"), {"ammount": amnt})
-    data = result.fetchall()
+    scoreboard_cursor = db.session.execute(text("SELECT username, score, country_code FROM leaderboard ORDER BY score DESC, username ASC LIMIT :length"), {"length": scoreboard_length})
+    scoreboard = scoreboard_cursor.fetchall()
+    scoreboard_cursor.close()
 
     # for each element in data, create a dictionary with keys user/score/data and their
     # values, and make a list that contains all of those dictionaries:
-    data_dic_list = [{"username": el[0], "score": el[1], "country_code": el[2]} for el in data]
+    scoreboard_list = [{"username": el[0], "score": el[1], "country_code": el[2]} for el in scoreboard]
 
-
-    result.close()
-    print(data_dic_list)
-
-    return jsonify(data_dic_list)
+    return jsonify(scoreboard_list), 200
 
 
 # returns a string with the country code of an IP

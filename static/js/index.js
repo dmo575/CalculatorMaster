@@ -60,39 +60,9 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
     openMessagePre(nameModalElement, true);
     return;
-    test()
-    .then(() => {
-        console.log('END');
-    });
-    //openMessagePre(leaderboardModalElement, true);
+    openMessagePre(leaderboardModalElement, true);
 
 });
-
-async function test() {
-
-    await new Promise((resolve, reject) => {
-        console.log('starting promise 1');
-        setTimeout(() => {
-            console.log('promise 1 body');
-            resolve();
-        }, 1000);
-        console.log('finishing promise 1');
-    })
-    .finally(() => {
-        console.log('FINALLY promise 1');
-    });
-
-    console.log('normal after promise 1');
-
-    await new Promise((resolve, reject) => {
-        console.log('starting promise 2');
-        setTimeout(() => {
-            console.log('promise 2 body');
-            resolve();
-        }, 1000);
-        console.log('finishing promise 2');
-    });
-}
 
 // triggers each time the player presses a button on the calculator
 document.addEventListener('click', (event) => {
@@ -152,10 +122,10 @@ nameForm.addEventListener('submit', (event) => {
 
     nameForm.name.disabled = true;
 
-    let name = nameForm.name.value;
+    let username = nameForm.name.value;
 
     // client side data validation for the name
-    let checkObject = checkUsername(name);
+    let checkObject = checkUsername(username);
 
     // if name is invalid, send mesage to the user with reason.
     if(!checkObject.pass) {
@@ -163,25 +133,27 @@ nameForm.addEventListener('submit', (event) => {
         openMessage(true, checkObject.errorArray, false, 'OK', (e) => {
             closeMessage(e.target.parentNode);
         });
-
+        
+        nameForm.name.disabled = false;
         return;
     }
 
     // close the 'insert name' message
     closeMessage(nameModalElement, false, false)
     .then(()=> {
-
-        sendScore2(name, lvl)
-        .then((scoreId)=> {
-
-            showLeaderboard(scoreId)
+        // then attempt to send the score
+        sendScore(username, lvl)
+        .then((scoreData)=> {
+            // then if success, show leaderboard
+            showLeaderboard(scoreData)
             .then(() => {
                 console.log('SCOREBOARD DONE');
             });
-
         })
         .catch((error) => {
+            // handle sendScore2 errors
             console.log('Error on sendScore2:' + error.message);
+            // 
             openMessagePre(nameModalElement, false)
             .then(() => {
                 nameForm.name.disabled = false;
@@ -389,7 +361,7 @@ function printThankYou() {
 
 // resolved once the data has been sent to the server OR if the username for that score
 // is taken (in that case it calls reject())
-function sendScore2(username, score) {
+function sendScore(username, score) {
     
     // this is the data object we will send as a json
     const userData = {
@@ -447,13 +419,11 @@ function sendScore2(username, score) {
                     })
                 }
                 else {
-
-                    console.log(data.message);
                     // close loading message
                     closeMessage(loadingMsg)
                     .then(() => {
                         // then resolve
-                        resolve(data.score_id);
+                        resolve(data.scoreData);
                     });
                 }
 
@@ -468,14 +438,15 @@ function sendScore2(username, score) {
                     // then open an error message with the option to try again
                     openMessage(true, ['Oops !', 'An error acurred while sending the score to the server'],false, 'Try again',  (e) => {
                         // on click 'try again':
+
                         // close error message
                         closeMessage(e.target.parentNode)
                         .then(() => {
                             // then call sendScore recursively
-                            sendScore2(username, score)
-                            .then((scoreId) => {
+                            sendScore(username, score)
+                            .then((scoreData) => {
                                 // then once sendScore has been solved (aka data sent), resolve
-                                resolve(scoreId);
+                                resolve(scoreData);
                             });
                         });
                     });
@@ -487,9 +458,8 @@ function sendScore2(username, score) {
     return promise;
 }
 
-
 // handles the loading and displaying of the leaderboard
-function showLeaderboard(scoreId) {
+function showLeaderboard(userData) {
 
     // to be resolved once leaderboard is displayed
     const promise = new Promise ((resolve, reject) => {
@@ -499,7 +469,7 @@ function showLeaderboard(scoreId) {
         .then((loadingMsg) => {
             // then fetch for leaderboard data
 
-            fetch(`/get_leaderboard?amnt=${leaderboardCapacity}`)
+            fetch(`/get_leaderboard?length=${leaderboardCapacity}`)
             .then((response) => {
                 // then handle response
 
@@ -508,20 +478,33 @@ function showLeaderboard(scoreId) {
                     return response.json();
                 }
                 else {
-                    throw new Error('Response came out NOT OK');
+                    throw new Error('Error while retrieving leaderboard data');
                 }
             })
-            .then((data) => {
+            .then((leaderboardData) => {
                 // if response ok, then handle data
 
-                // load flag images and get flagObjects array
-                getFlagsArray(data)
-                .then((flags) => {
-                    // then update the leaderboard
+                // create an array with all the country codes from the leaderboard
+                let countryCodes = [];
+                leaderboardData.forEach((el) => {
+                    let contains = countryCodes.includes(el.country_code);
 
-                    console.log('All data needed for leaderboard has been resolved');
-                    console.log(flags);
-                    updateLeaderboard(data, flags);
+                    if(!contains) {
+                        countryCodes.push(el.country_code);
+                    }
+                });
+
+                // add the user's score country code data to the countryCodes array
+                if(!countryCodes.includes(userData.country_code)) {
+                    countryCodes.push(userData.country_code);
+                }
+
+                // load all flag images we need once
+                loadFlagImages(countryCodes)
+                .then(flags => {
+                    // we have all the data we need to populate the leaderboard
+
+                    updateLeaderboard(leaderboardData, flags, userData);
                     closeMessage(loadingMsg)
                     .then(()=> {
                         openMessagePre(leaderboardModalElement)
@@ -530,8 +513,8 @@ function showLeaderboard(scoreId) {
                         });
                     });
                 })
-                .catch((error) => {
-                    console.log('Error: ' + error.message);
+                .catch(error => {
+                    console.log('Error loading the flag images: ' + error.message);
                 });
             })
             .catch(error => {
@@ -548,7 +531,7 @@ function showLeaderboard(scoreId) {
                         closeMessage(e.target.parentNode)
                         .then(() => {
                             // then recursively call showLeaderboard
-                            showLeaderboard()
+                            showLeaderboard(userData)
                             .then(() => {
                                 // then (once leaderboard is displayed), resolve
                                 resolve();
@@ -563,24 +546,13 @@ function showLeaderboard(scoreId) {
     return promise;
 }
 
-function getFlagsArray(data) {
-
+function loadFlagImages(countryCodes) {
+    
     let flags = [];
 
-    // populate array with objects that link a country code with an Image
-    data.forEach((element) => {
-        
-        let contains = !flags.every((f)=> {
-            return !(f.country === element.loc);
-        });
-
-        if(contains) {
-            return;
-        }
-
-        flags.push({country: element.loc, img: new Image()});
+    countryCodes.forEach(el => {
+        flags.push({country_code: el, img: new Image()});
     });
-
 
     let promise = new Promise((resolve, reject) => {
         // get a dictionary with flaf images
@@ -593,7 +565,7 @@ function getFlagsArray(data) {
         flags.forEach((element) => {
             let imgLoadPromise = new Promise((imgLoadResolve, imgLoadReject) => {
                 
-                element.img.src = `https://flagsapi.com/${element.country}/shiny/32.png`;
+                element.img.src = `https://flagsapi.com/${element.country_code}/shiny/32.png`;
                 // if the image loaded, resolve
                 element.img.onload = ()=> {imgLoadResolve(element);};
                 // if the image could not load, set source to our flag placeholder
@@ -621,47 +593,55 @@ function getFlagsArray(data) {
             console.log('All images resolved');
             resolve(flags);
         });
-    })
-    .catch(e => {
-        console.error('Error while updating leaderboard: ' + e.message);
     });
 
     return promise;
 }
 
-function updateLeaderboard(data, flagsArray) {
-
-    // for each data element, we create a leaderboard item
+function updateLeaderboard(leaderboardData, flags, userData) {
 
     const leaderboardItemCont = leaderboardModalElement.querySelector('#leaderboard_item_container');
+    const userScoreContainerElement =  leaderboardModalElement.querySelector('#user_score_container');
 
-    // clear leaderboard (just in case we dont have to really, ill be empty)
-    while(leaderboardItemCont.lastChild) {
-        leaderboardItemCont.removeChild(leaderboardItemCont.lastChild);
-    }
+    // for each leaderboard data element:
+    leaderboardData.forEach((element, index)=> {
 
-    data.forEach((element, index)=> {
-
-        // get the flag image for this element
-        let flagImg = '';
-        for(let i = 0; i < flagsArray.length; i++) {
-            if(flagsArray[i].country == element.loc) {
-                flagImg = flagsArray[i].img;
+        // identify the image source for its flag
+        let flagImgSrc = '';
+        for(let i = 0; i < flags.length; i++) {
+            if(flags[i].country_code == element.country_code) {
+                flagImgSrc = flags[i].img.src;
                 break;
             }
         }
 
-        let item = createLeaderboardItem(element.user, element.score, index + 1, flagImg);
+        // create an item with the element  data
+        let item = createLeaderboardItem(element.username, element.score, index + 1, flagImgSrc);
+        // add it to the leaderboard element
         leaderboardItemCont.appendChild(item);
     });
 
+    // identify the image source for the user's flag
+    let userFlagImgSrc = '';
+    flags.forEach(el => {
+
+        if(el.country_code == userData.country_code) {
+            userFlagImgSrc = el.img.src;
+        }
+    });
+
+    // create the user score item
+    let userScoreItem = createLeaderboardItem(userData.username, userData.score, userData.rank, userFlagImgSrc);
+    // and add it to its place in the leaderboard
+    userScoreContainerElement.appendChild(userScoreItem);
 }
 
 // creates a leaderboard element with given values and returns it
-function createLeaderboardItem(username, level, rank, flagImg) {
+function createLeaderboardItem(username, level, rank, flagImgSrc) {
 
     // create elements
     let item = document.createElement('div');
+    let itemContainer = document.createElement('div');
     let name = document.createElement('p');
     let score = document.createElement('p');
     let flag = document.createElement('img');
@@ -669,18 +649,20 @@ function createLeaderboardItem(username, level, rank, flagImg) {
     // assign values to elements
     name.innerText = `${rank} - ${username}`;
     score.innerText = level;
-    flag.src = flagImg.src;
+    flag.src = flagImgSrc;
     
     // assign them their css classes
     item.classList.add('leaderboard_item');
-    name.classList.add('leaderboard_item_component');
-    score.classList.add('leaderboard_item_component');
-    flag.classList.add('leaderboard_item_component', 'leaderboard_item_image');
+    itemContainer.classList.add('item_container');
+    name.classList.add('item_component');
+    score.classList.add('item_component');
+    flag.classList.add('item_component', 'leaderboard_item_image');
     
     // append item component elements to item element
-    item.appendChild(name);
-    item.appendChild(score);
-    item.appendChild(flag);
+    itemContainer.appendChild(name);
+    itemContainer.appendChild(score);
+    itemContainer.appendChild(flag);
+    item.appendChild(itemContainer);
 
     return item;
 }

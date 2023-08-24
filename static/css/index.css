@@ -391,7 +391,8 @@ body {
 
 .leaderboard_item {
     display: flex;
-    justify-content: space-between;
+    /*justify-content: space-between;*/
+    justify-content: center;
 
     margin-bottom: 1px;
 
@@ -400,15 +401,29 @@ body {
     background-color: rgba(55, 91, 97, 0.096);
 }
 
+.item_container {
+    display: flex;
+    justify-content: space-between;
+
+    width: 100%;
+
+    margin: 0;
+    margin-right: 2rem;
+    margin-left: 2rem;
+}
+
+.item_component {
+    margin: 0;
+    width: 33%;
+    overflow-x: hidden;
+    white-space: nowrap;
+}
+
 .leaderboard_item_component {
 
     padding-left: 2rem;
     padding-right: 2rem;
     margin: 0;
-}
-
-#user_score {
-    margin-bottom: 2rem;
 }
 
 .leaderboard_text {
@@ -436,4 +451,5 @@ body {
     width: 20%;
     
     border-radius: 0;
+    margin-top: 2rem;
 }
