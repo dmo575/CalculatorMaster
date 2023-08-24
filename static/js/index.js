@@ -44,7 +44,7 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = 99.99 * 1000;
+var currentTime = /*99.99*/ 5 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
@@ -60,8 +60,7 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     // Opens the welcome/instructions message
-    //openMessagePre(introModalElement, true);
-    openMessagePre(nameModalElement, true);
+    openMessagePre(introModalElement, true);
 });
 
 // triggers each time the player presses a button on the calculator
@@ -347,6 +346,12 @@ function levelUp() {
     lvl++;
     levelElement.innerText = 'Lvl ' + lvl;
     // TODO: animation
+}
+
+function endGame() {
+    //
+    printThankYou();
+    openMessagePre(nameModalElement, true);
 }
 
 // creates a custom calculator that displays a 'Thank you" message
