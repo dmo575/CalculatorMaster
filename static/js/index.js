@@ -42,7 +42,7 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = /*99.99*/ 0.5 * 1000;
+var currentTime = /*99.99*/ 500 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
@@ -58,9 +58,7 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     // Opens the welcome/instructions message
-    openMessage(['linsdsdsds   sdsdsdsde 1', 'line2'], ['message_pos_center', 'message_theme_error'], true, 'Test', ()=> {console.log('sdsds')});
-    //openMessagePre(introModal, true);
-    //openMessagePre(leaderboardModal, true);
+    openMessagePre(introModal, true);
 });
 
 // triggers each time the player presses a button on the calculator
@@ -274,26 +272,108 @@ function makeCalculator(lv, sym=undefined, gridLen=32, searchMethod=arrayGridSea
     btnMinRound = btnMinRound > 30 ? 30 : btnMinRound;
 
    // make buttons
-   let buttons = [];
+   let buttonsData = [];
    symbols.forEach((el) => {
        let btn = new Button(el, getRanNumber(btnMinLen, btnMaxLen),
        getRanNumber(btnMinLen, btnMaxLen), getRanNumber(btnMinRound, btnMaxRound));
 
        // give the button a start position in the array grid
        btn.start = getStartPosOnArrayGrid(btn, searchMethod);
-       buttons.push(btn);
+       buttonsData.push(btn);
    });
 
    // convert the 'array grid' start position of the buttons to a 
    // start position on the 'css grid'
-   convertArrayGridPosToCSSGridPos(buttons);
+   convertArrayGridPosToCSSGridPos(buttonsData);
 
    initCssGrid();
 
    // draw buttons
-   buttons.forEach((el) => {
-       drawButton(el, el.start);
+   //buttons.forEach((el) => {
+   //    spawnButton(el, el.start);
+   //});
+
+   /* spawButton(0)
+   .then(() => {
+    for each button
+   })*/
+
+   // we add all the buttons onto the css grid and store them in cssButtons
+   let cssButtons = [];
+   buttonsData.forEach((el) => {
+       cssButtons.push(spawnButton2(el, el.start));
    });
+
+   buttonPop(cssButtons, 0, () => {console.log('DONE')});
+}
+
+// a hardcoded animation pop to liven up the calculator
+// calls callback once all the buttons are done spawning
+function buttonPop(cssButtons, currIndex, callback=undefined) {
+
+    // how much of the button size we increment per tick (in percentage)
+    let increment = 10;
+
+    return new Promise((resolve, reject) => {
+        
+        // if we gout outside of the boundaries of the array, reject (stop)
+        if(currIndex == cssButtons.length - 1) {
+            reject('finished');
+        }
+
+        // get the button we will be working with
+        let btn = cssButtons[currIndex];
+        // keeps track of wether the next button in the array has been called for
+        // this function or not
+        let nextCalled = false;
+
+        // starting values for each button (we match the opacity with the w:h percentages
+        // to avoid overcomplicating things)
+        btn.style.width = '30%';
+        btn.style.height = '30%';
+        btn.style.opacity = '0.3';
+
+        // set the interval for the button and resolve() on completion
+        let popInterval = setInterval(()=> {
+
+            // we get the current percentage value
+            let curr = parseInt(btn.style.width.substring(0, btn.style.width.length - 1));
+
+            // we calculate the new percentage value
+            let percentage = (curr + increment) > 100 ? '100%' : (curr + increment).toString() + '%';
+
+            // set the new values
+            btn.style.width = percentage;
+            btn.style.height = percentage;
+            btn.style.opacity = parseFloat(btn.style.opacity) + increment / 100.0;
+
+            // if the percentage is 100%, we are done imcrementing, we can clear the interval
+            if(percentage === '100%') {
+                // we resolve to get the next button to start popping now
+                clearInterval(popInterval);
+            }
+            // if the current percentage we are at (50) is enough for us to want to call this function
+            // onto the next button, we do so.
+            if(!nextCalled && (curr + increment) > 50) {
+                nextCalled = true;
+                resolve();
+            }
+        }, 4);
+    })
+    .then(() => {
+        // recursively call this on the next button in the array
+        currIndex++;
+        buttonPop(cssButtons, currIndex, callback);
+    })
+    .catch(err => {
+        // this means we are done calling the buttonPop on all the buttons
+        if(err == 'finished' && callback) {
+            callback();
+        }
+        else {
+            console.log(err);
+        }
+    });
 }
 
 // creates random equation based on level
@@ -969,7 +1049,7 @@ function convertArrayGridPosToCSSGridPos(buttons) {
 
 // given a button, a start position in a 1 based grid and a positive width and height,
 // this func will add the button to the page's css grid
-function drawButton(btn, start) {
+function spawnButton(btn, start) {
     let buttonElement = document.createElement('div');
 
     buttonElement.classList.add('button');
@@ -981,6 +1061,26 @@ function drawButton(btn, start) {
     buttonElement.dataset.symbol = btn.symbol;
 
     gridElement.appendChild(buttonElement);
+}
+
+function spawnButton2(btn, start) {
+    let button = document.createElement('div');
+
+    button.classList.add('button');
+
+    button.style['grid-column'] = `${start.x} / span ${btn.width}`;
+    button.style['grid-row'] = `${start.y} / span ${btn.height}`;
+    button.innerText = btn.symbol;
+    button.style['border-radius'] = `${btn.radius}%`;
+    button.dataset.symbol = btn.symbol;
+
+    button.style.width = '0%';
+    button.style.height = '0%';
+    button.style.opacity = '0';
+
+    gridElement.appendChild(button);
+    
+    return button;
 }
 
 // clears out the css grid children
