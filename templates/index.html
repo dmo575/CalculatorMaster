@@ -11,13 +11,16 @@
     <title>Calculator Master</title>
 </head>
     <body>
+        <!-- the backdrop that is used to shade the background black as a message is open -->
         <div id="backdrop"></div>
-        <div id="header_container">
+
+        <!-- page rows -->
+        <div id="header">
             <div id="errors">
                 Err
             </div>
-            <div id="timer_container">
-                <div id="timer">
+            <div id="timer">
+                <div id="timer_container">
                     99:99
                 </div>
             </div>
@@ -25,55 +28,59 @@
                 Lvl
             </div>
         </div>
-        <div id="equation_container">
-            <div id="equation">
+
+        <div id="equation">
+            <div id="equation_container">
                 ? ? ?
             </div>
         </div>
-        <div id="calculator_container">
-            <div id="calculator">
-                <div id="screen_container">
-                    <div id="screen">
+
+        <div id="calculator">
+            <div id="calculator_container">
+                <div id="screen">
+                    <div id="screen_container">
                         0000000
                     </div>
                 </div>
-                <div id="buttons_container">
+                <div id="buttons">
                 </div>
             </div>
         </div>
-        <dialog id="intro_modal" class="parent_modal">
+
+        <!-- windows -->
+        <dialog id="modal_intro" class="message_general message_pos_center message_theme_default">
             <div id="intro_container">
                 <img id="intro_image" src="/static/images/ph_image_user.jpg">
-                <div id="message_container">
-                    <div id="message">
+                <div id="intro_message">
+                    <div id="intro_message_text">
                         <p>Welcome to Calculator Master.</p>
                         <p>The rules are simple. You will see equations at the top of the screen that you need to input in the calculator. Enter as many as you can before the time runs out !</p>
                         <p>Careful, if you missinput any digit, your progress for that equation will vanish and you will have to start it again.</p>
                         <p>Once the time countdown expires, you will be able to record your name along your score and check how well you did against other players around the globe.</p>
                         <p>Good luck !</p>
                     </div>
-                    <button id="btn_start" type="button">Start</button>
+                    <button id="intro_message_button" type="button">Start</button>
                 </div>
             </div>
         </dialog>
-        <dialog id="countdown_modal">
+
+        <dialog id="modal_countdown">
             <div id="countdown">
             </div>
         </dialog>
-        <!-- 'Enter a name' window -->
-        <dialog id="name_modal" class="parent_modal">
-            <div id="name_container">
-                <div id="name_header">
+
+        <dialog id="modal_username" class="message_general message_pos_center message_theme_default">
+            <div id="username_container">
+                <div id="username_header">
                     - enter a name -
                 </div>
-                <form id="name_form" action="/">
+                <form id="username_form" action="/">
                     <input id="name_box" name="username" type="text" placeholder="name">
                 </form>
             </div>
         </dialog>
 
-        <!-- Leaderboard window -->
-        <dialog id="leaderboard" class="parent_modal">
+        <dialog id="modal_leaderboard" class="message_general message_pos_center message_theme_default">
             <div id="leaderboard_container">
                 <p class="leaderboard_text">Global leaderboard</p>
                 <div id="leaderboard_item_container">

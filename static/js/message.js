@@ -17,7 +17,7 @@ function init() {
 }
 
 // creates a message modal
-function createMessageModal(isError, messageLines, buttonText='', buttonCallBack=undefined) {
+function createMessageModal(messageLines, messageStyles=['message_pos_center', 'message_theme_default'], buttonText='', buttonCallBack=undefined) {
 
     // set up message line elements
     let lines = [];
@@ -26,6 +26,9 @@ function createMessageModal(isError, messageLines, buttonText='', buttonCallBack
         lines[index].innerText = line;
         lines[index].classList.add('message_line');
     });
+
+    let buttonFlexContainer = document.createElement('div');
+    buttonFlexContainer.classList.add('message_button_flex');
     
     // set up message button (if applicable)
     let buttonElement;
@@ -43,14 +46,20 @@ function createMessageModal(isError, messageLines, buttonText='', buttonCallBack
     });
 
     if(buttonCallBack) {
-        dialogElement.appendChild(buttonElement);
+        buttonFlexContainer.appendChild(buttonElement);
+        dialogElement.appendChild(buttonFlexContainer);
     }
     
-    dialogElement.classList.add('message_dialog');
+    dialogElement.classList.add('message_general');
 
+    /*
     if(isError) {
         dialogElement.classList.add('message_dialog_error_theme');
     }
+    */
+   messageStyles.forEach(style => {
+    dialogElement.classList.add(style);
+   });
 
     document.body.appendChild(dialogElement);
 
@@ -58,9 +67,13 @@ function createMessageModal(isError, messageLines, buttonText='', buttonCallBack
 }
 
 // creates and opens a message (modal)
-export function openMessage(isError, contents, callBackdrop=false, buttonText='', buttonCallback=undefined) {
+export function openMessage(messageLines, messageStyles=undefined, callBackdrop=false, buttonText='', buttonCallback=undefined) {
 
-    const messageModal = createMessageModal(isError, contents, buttonText, buttonCallback);
+    if(messageStyles === undefined) {
+        messageStyles = ['message_pos_center', 'message_theme_default']
+    }
+
+    const messageModal = createMessageModal(messageLines, messageStyles, buttonText, buttonCallback);
 
     return openMessagePre(messageModal, callBackdrop);
 

@@ -14,25 +14,23 @@ const thanksForPlaying = ['THANK', 'YOU', '4', 'PLAYING'];
 const wordColors = ['red', 'green', 'blue', 'yellow'];
 
 // elements (since this script is set to defer, we can safely get the html elements here)
-const screenElement = document.querySelector('#screen');
-const equationElement = document.querySelector('#equation')
-const timerElement = document.querySelector('#timer');
+const screenElement = document.querySelector('#screen_container');
+const equationElement = document.querySelector('#equation_container')
+const timerElement = document.querySelector('#timer_container');
 const errorsElement = document.querySelector('#errors');
 const levelElement = document.querySelector('#level');
-const gridElement = document.querySelector('#buttons_container');
-const countdownModalElement = document.querySelector('#countdown_modal');
-const countdownContainer = document.querySelector('#countdown');
-
+const gridElement = document.querySelector('#buttons');
+const countdownElement = document.querySelector('#countdown');
+const buttonsElement = document.querySelector('#buttons');
 // forms
-const nameForm = document.querySelector('#name_form');
-
-// modal message boxes
-const introModalElement = document.querySelector('#intro_modal');
-const nameModalElement = document.querySelector('#name_modal');
-const leaderboardModalElement = document.querySelector('#leaderboard');
-
+const usernameForm = document.querySelector('#username_form');
+// modals
+const introModal = document.querySelector('#modal_intro');
+const countdownModal = document.querySelector('#modal_countdown');
+const usernameModal = document.querySelector('#modal_username');
+const leaderboardModal = document.querySelector('#modal_leaderboard');
 // buttons
-const introModalButtonElement = document.querySelector('#btn_start');
+const introButton = document.querySelector('#intro_message_button');
 
 // how often we will update the timer UI (miliseconds)
 const timerInterval = 10;
@@ -44,7 +42,7 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = /*99.99*/ 5 * 1000;
+var currentTime = /*99.99*/ 0.5 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
@@ -60,7 +58,9 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     // Opens the welcome/instructions message
-    openMessagePre(introModalElement, true);
+    openMessage(['linsdsdsds   sdsdsdsde 1', 'line2'], ['message_pos_center', 'message_theme_error'], true, 'Test', ()=> {console.log('sdsds')});
+    //openMessagePre(introModal, true);
+    //openMessagePre(leaderboardModal, true);
 });
 
 // triggers each time the player presses a button on the calculator
@@ -93,10 +93,10 @@ document.addEventListener('click', (event) => {
     }
 });
 // triggers when the player clicks 'Start' on the intro modal
-introModalButtonElement.addEventListener('click', (event) => {
+introButton.addEventListener('click', (event) => {
     
     // close intro message and start the countdown
-    closeMessage(introModalElement, true, true)
+    closeMessage(introModal, true, true)
     .then(() => {
         startCountDown();
     });
@@ -110,14 +110,14 @@ document.addEventListener('keydown', (event) => {
 });
 
 // triggers when the user hits enter on the 'enter a username' window
-nameForm.addEventListener('submit', (event) => {
+usernameForm.addEventListener('submit', (event) => {
     
     // prevent default, we will handle the request by fetch.
     event.preventDefault();
 
-    nameForm.username.disabled = true;
+    usernameForm.username.disabled = true;
 
-    let username = nameForm.username.value;
+    let username = usernameForm.username.value;
 
     // client side data validation for the name
     let checkObject = checkUsername(username);
@@ -126,13 +126,13 @@ nameForm.addEventListener('submit', (event) => {
     if(!checkObject.pass) {
 
         // open an error message and inform user of error
-        openMessage(true, checkObject.errorArray, false, 'OK', (e) => {
+        openMessage(checkObject.errorArray, ['message_pos_center', 'message_theme_error'], false, 'OK', (e) => {
             
             // on click, close the erro window
             closeMessage(e.target.parentNode)
             .then(() => {
                 // enable input field again
-                nameForm.username.disabled = false;
+                usernameForm.username.disabled = false;
             });
         });
 
@@ -140,7 +140,7 @@ nameForm.addEventListener('submit', (event) => {
     }
 
     // close the 'insert name' message
-    closeMessage(nameModalElement, false, false)
+    closeMessage(usernameModal, false, false)
     .then(()=> {
 
         // then attempt to send the score
@@ -155,9 +155,9 @@ nameForm.addEventListener('submit', (event) => {
 
             console.log(error.message);
             // reopen the 'insert name' message to allow for a try again
-            openMessagePre(nameModalElement, false)
+            openMessagePre(usernameModal, false)
             .then(() => {
-                nameForm.username.disabled = false;
+                usernameForm.username.disabled = false;
             });
         });
     });
@@ -181,20 +181,20 @@ function startCountDown() {
     let updateRate = 10;
     // start time (seconds)
     let time = 4.0;
-    let computedFontSize = window.getComputedStyle(countdownContainer).fontSize;
+    let computedFontSize = window.getComputedStyle(countdownElement).fontSize;
     // original size of the text in pixles
     // we substract 2 to remove the 'px' from the string we are parsing
     let originalSize = parseInt(computedFontSize.slice(0, computedFontSize.length - 2));
     
     // set the initial value for the countdown text and show the modal
-    countdownContainer.innerText = time;
-    countdownModalElement.showModal();
+    countdownElement.innerText = time;
+    countdownModal.showModal();
 
     // every tick:
     let cd = setInterval(() => {
 
         // get current size (returns a string with px at the end)
-        computedFontSize = window.getComputedStyle(countdownContainer).fontSize;
+        computedFontSize = window.getComputedStyle(countdownElement).fontSize;
 
         // parse the size into an int
         let currSize = parseInt(computedFontSize.slice(0, computedFontSize.length - 2));
@@ -206,21 +206,21 @@ function startCountDown() {
         time -= updateRate / 1000;
 
         // if a second has passed:
-        if(parseInt(countdownContainer.innerText) > parseInt(time)) {
+        if(parseInt(countdownElement.innerText) > parseInt(time)) {
 
             // set the innerText to the new second value
-            countdownContainer.innerText = parseInt(time);
+            countdownElement.innerText = parseInt(time);
 
             // set currSize to original size
             currSize = originalSize;
         }
 
         // update element's innerText size with computed size
-        countdownContainer.style.fontSize = `${currSize}px`;
+        countdownElement.style.fontSize = `${currSize}px`;
 
         // if time is less than 1.0
         if(time < 1) {
-            countdownModalElement.close();
+            countdownModal.close();
             startGame();
             clearInterval(cd);
         }
@@ -351,7 +351,7 @@ function levelUp() {
 function endGame() {
     //
     printThankYou();
-    openMessagePre(nameModalElement, true);
+    openMessagePre(usernameModal, true);
 }
 
 // creates a custom calculator that displays a 'Thank you" message
@@ -396,7 +396,7 @@ function sendScore(username, score) {
     const promise = new Promise((resolve, reject) => {
 
         // open a loading msg
-        openMessage(false, ['Sending your score to the server', '. . . '])
+        openMessage(['Sending your score to the server', '. . . '])
         .then((loadingMsg) => {
 
             // then start a fetch request
@@ -426,7 +426,7 @@ function sendScore(username, score) {
                     .then(()=> {
 
                         // then open msg telling user to use different name
-                        openMessage(false, ['There is already a record with this username and score', 'Please select another username'], false, 'Ok', (e) => {
+                        openMessage(['There is already a record with this username and score', 'Please select another username'], undefined, false, 'Ok', (e) => {
 
                             // on message's button click:
                             // close message
@@ -462,7 +462,7 @@ function sendScore(username, score) {
                 .then(() => {
 
                     // then open an error message with the option to try again
-                    openMessage(true, ['Oops !', 'An error acurred while sending the score to the server'],false, 'Try again',  (e) => {
+                    openMessage(['Oops !', 'An error acurred while sending the score to the server'], ['message_pos_center', 'message_theme_error'],false, 'Try again',  (e) => {
                         
                         // on click 'try again':
                         // close error message
@@ -494,7 +494,7 @@ function showLeaderboard(userData) {
     const promise = new Promise ((resolve, reject) => {
 
         // open loading message
-        openMessage(false, ['Loading global rankins', '. . .'])
+        openMessage(['Loading global rankins', '. . .'])
         .then((loadingMsg) => {
 
             // then fetch for leaderboard data
@@ -541,7 +541,7 @@ function showLeaderboard(userData) {
                     .then(()=> {
 
                         // then open the leaderboard window
-                        openMessagePre(leaderboardModalElement)
+                        openMessagePre(leaderboardModal)
                         .then(()=> {
                             resolve();
                         });
@@ -558,7 +558,7 @@ function showLeaderboard(userData) {
                 .then(() => {
 
                     // then open an error message with a 'Try again' option
-                    openMessage(true, ['Error while retrieving leaderboard.'], false, 'Try again', (e) => {
+                    openMessage(['Error while retrieving leaderboard.'], ['message_pos_center', 'message_theme_error'], false, 'Try again', (e) => {
                     
                         // on 'Try again' click: close the error message
                         closeMessage(e.target.parentNode)
@@ -637,8 +637,8 @@ function loadFlagImages(countryCodes) {
 // given the neccessary data, populates the leaderboard element
 function updateLeaderboard(leaderboardData, flags, userData) {
 
-    const leaderboardItemCont = leaderboardModalElement.querySelector('#leaderboard_item_container');
-    const userScoreContainerElement =  leaderboardModalElement.querySelector('#user_score_container');
+    const leaderboardItemCont = leaderboardModal.querySelector('#leaderboard_item_container');
+    const userScoreContainerElement =  leaderboardModal.querySelector('#user_score_container');
 
     // for each leaderboard item element:
     leaderboardData.forEach((element, index)=> {
@@ -985,10 +985,9 @@ function drawButton(btn, start) {
 
 // clears out the css grid children
 function initCssGrid() {
-    let gridElement = document.querySelector('#buttons_container');
-    
-    while(gridElement.lastChild) {
-        gridElement.removeChild(gridElement.lastChild);
+
+    while(buttonsElement.lastChild) {
+        buttonsElement.removeChild(gridElement.lastChild);
     }
 }
 
