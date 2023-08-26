@@ -5,13 +5,15 @@ import { printGridArray, printGridButton } from './debug.js';
 
 // stores the button layout in the form of a 2D JS array
 const arrayGrid = [];
+// keeps track of instant animation intervals that can be cut short at any time
+const instantAnimations = [];
 // calculator button symbols
 const buttonSymbols = [
     '6','3','2','5','8','9','/','*','-','+','=','0','.','1','4','7'
 ];
 // const data for "Thank you 4 Playing" button layout
 const thanksForPlaying = ['THANK', 'YOU', '4', 'PLAYING'];
-const wordColors = ['red', 'green', 'blue', 'yellow'];
+const wordColors = ['black', 'grey', 'white', 'black'];
 
 // elements (since this script is set to defer, we can safely get the html elements here)
 const screenElement = document.querySelector('#screen_container');
@@ -20,7 +22,7 @@ const timerElement = document.querySelector('#timer_container');
 const errorsElement = document.querySelector('#errors');
 const levelElement = document.querySelector('#level');
 const gridElement = document.querySelector('#buttons');
-const countdownElement = document.querySelector('#countdown');
+const countdownTextElement = document.querySelector('#countdown_text');
 const buttonsElement = document.querySelector('#buttons');
 // forms
 const usernameForm = document.querySelector('#username_form');
@@ -42,13 +44,15 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = /*99.99*/ 500 * 1000;
+var currentTime = /*99.99*/ 30 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
 var errorCount = 0;
+// keeps track of wether the user is allowed to press the calculator buttons or not
+var allowInput = true;
 // how many users can the leaderboard display
-const leaderboardCapacity = 30;
+const leaderboardCapacity = 50;
 const pladeholderFlagImgSrc = '/static/images/world.png';
 
 
@@ -58,37 +62,46 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     // Opens the welcome/instructions message
-    openMessagePre(introModal, true);
+    printThankYou();
+    //openMessagePre(introModal, true);
 });
 
 // triggers each time the player presses a button on the calculator
 document.addEventListener('click', (event) => {
     
     // if we clicked a button
-    if(!event.target.classList.contains('button')) return;
+    if(!event.target.classList.contains('button_container') && allowInput) return;
 
-    // get button's symbol
-    let symbol = event.target.dataset.symbol;
 
-    // add it to screen and upate it
-    screen += symbol;
-    screenElement.innerText = screen;
+    // if we are pressing a button and we are allowed to do that
+    if(event.target.classList.contains('button_container') && allowInput) {
 
-    // check if whats on the screen aligns with the current equation
-    for(let i = 0; i < screen.length; i++) {
-
-        if(screen[i] != equation[i]) {
-            // if it doesnt, update errors and clear the screen
-            updateErrors();
-            clearScreen();
-            break;
+        // get button's symbol
+        let symbol = event.target.dataset.symbol;
+    
+        clickAnimation(event.target, 90, 2);
+    
+        // add it to screen and upate it
+        screen += symbol;
+        screenElement.innerText = screen;
+    
+        // check if whats on the screen aligns with the current equation
+        for(let i = 0; i < screen.length; i++) {
+    
+            if(screen[i] != equation[i]) {
+                // if it doesnt, update errors and clear the screen
+                updateErrors();
+                clearScreen();
+                break;
+            }
+        }
+    
+        // if the equation has been completed, go next level
+        if(screen.length == equation.length) {
+            next();
         }
     }
 
-    // if the equation has been completed, go next level
-    if(screen.length == equation.length) {
-        next();
-    }
 });
 // triggers when the player clicks 'Start' on the intro modal
 introButton.addEventListener('click', (event) => {
@@ -127,7 +140,7 @@ usernameForm.addEventListener('submit', (event) => {
         openMessage(checkObject.errorArray, ['message_pos_center', 'message_theme_error'], false, 'OK', (e) => {
             
             // on click, close the erro window
-            closeMessage(e.target.parentNode)
+            closeMessage(e.target.parentNode.parentNode)
             .then(() => {
                 // enable input field again
                 usernameForm.username.disabled = false;
@@ -175,59 +188,38 @@ function startGame() {
 // starts the 3 second countdown countdown, calls startGame() after countdown
 function startCountDown() {
 
-    // how often we will update this countdown interval (miliseconds)
-    let updateRate = 10;
-    // start time (seconds)
-    let time = 4.0;
-    let computedFontSize = window.getComputedStyle(countdownElement).fontSize;
-    // original size of the text in pixles
-    // we substract 2 to remove the 'px' from the string we are parsing
-    let originalSize = parseInt(computedFontSize.slice(0, computedFontSize.length - 2));
-    
-    // set the initial value for the countdown text and show the modal
-    countdownElement.innerText = time;
+    countdownTextElement.style.opacity = 0;
     countdownModal.showModal();
 
-    // every tick:
-    let cd = setInterval(() => {
+    let tick = 10;
+    let countdownVal = 3;
+    let currTime = 3.2;
 
-        // get current size (returns a string with px at the end)
-        computedFontSize = window.getComputedStyle(countdownElement).fontSize;
+    let interval = setInterval(() => {
 
-        // parse the size into an int
-        let currSize = parseInt(computedFontSize.slice(0, computedFontSize.length - 2));
+        currTime -= tick / 1000;
 
-        // shrink the value by a bit (10 pixles)
-        currSize = currSize > 0 ? currSize - 10: 0;
+        if(parseInt(currTime) < countdownVal) {
 
-        // update time (seconds)
-        time -= updateRate / 1000;
+            countdownTextElement.innerText = countdownVal;
+            countdownVal--;
 
-        // if a second has passed:
-        if(parseInt(countdownElement.innerText) > parseInt(time)) {
-
-            // set the innerText to the new second value
-            countdownElement.innerText = parseInt(time);
-
-            // set currSize to original size
-            currSize = originalSize;
+            countDownAnimation(countdownTextElement, 40, 0.8);
         }
 
-        // update element's innerText size with computed size
-        countdownElement.style.fontSize = `${currSize}px`;
-
-        // if time is less than 1.0
-        if(time < 1) {
+        if(currTime < 0) {
             countdownModal.close();
             startGame();
-            clearInterval(cd);
+            clearInterval(interval);
         }
 
-    }, updateRate);
+    }, tick);
 }
 
 // starts the game's countdown and executes endGame() when it finishes
 function startGameTime() {
+
+    let currCountdown = 10;
 
     let timerObject = setInterval(() => {
         currentTime -= timerInterval;
@@ -238,6 +230,11 @@ function startGameTime() {
             // ends the game
             endGame();
             clearInterval(timerObject);
+        }
+        else if(parseInt(currentTime / 1000) < currCountdown) {
+            pingAnimation(timerElement, 10);
+            timerElement.style.color = 'red';
+            currCountdown--;
         }
 
     }, timerInterval);
@@ -260,51 +257,53 @@ function clearScreen() {
 // makes a new calculator based on level
 function makeCalculator(lv, sym=undefined, gridLen=32, searchMethod=arrayGridSearchSpiral) {
     
-    // initializes an array with a given length
-    initArrayGrid(gridLen);
-    // set max and min for button properties based on current level
-    let symbols = sym == undefined ? getRanSymbols() : sym;
-    let btnMinLen = parseInt(1 + 10 / 100 * lv);
-    let btnMaxLen = parseInt(1 + 20 / 100 * lv);
-    let btnMinRound = parseInt(1 + 50 / 100 * lv);
-    let btnMaxRound = parseInt(1 + 200 / 100 * lv);
-    btnMaxRound = btnMaxRound > 100 ? 100: btnMaxRound;
-    btnMinRound = btnMinRound > 30 ? 30 : btnMinRound;
+    return new Promise((resolve, reject) => {
+        // initializes an array with a given length
+        initArrayGrid(gridLen);
+        // set max and min for button properties based on current level
+        let symbols = sym == undefined ? getRanSymbols() : sym;
+        let btnMinLen = parseInt(1 + 10 / 100 * lv);
+        let btnMaxLen = parseInt(1 + 20 / 100 * lv);
+        let btnMinRound = parseInt(1 + 50 / 100 * lv);
+        let btnMaxRound = parseInt(1 + 200 / 100 * lv);
+        btnMaxRound = btnMaxRound > 100 ? 100: btnMaxRound;
+        btnMinRound = btnMinRound > 30 ? 30 : btnMinRound;
 
-   // make buttons
-   let buttonsData = [];
-   symbols.forEach((el) => {
-       let btn = new Button(el, getRanNumber(btnMinLen, btnMaxLen),
-       getRanNumber(btnMinLen, btnMaxLen), getRanNumber(btnMinRound, btnMaxRound));
+        // make buttons
+        let buttonsData = [];
+        symbols.forEach((el) => {
+            let btn = new Button(el, getRanNumber(btnMinLen, btnMaxLen),
+            getRanNumber(btnMinLen, btnMaxLen), getRanNumber(btnMinRound, btnMaxRound));
 
-       // give the button a start position in the array grid
-       btn.start = getStartPosOnArrayGrid(btn, searchMethod);
-       buttonsData.push(btn);
-   });
+            // give the button a start position in the array grid
+            btn.start = getStartPosOnArrayGrid(btn, searchMethod);
+            buttonsData.push(btn);
+        });
 
-   // convert the 'array grid' start position of the buttons to a 
-   // start position on the 'css grid'
-   convertArrayGridPosToCSSGridPos(buttonsData);
+        // convert the 'array grid' start position of the buttons to a 
+        // start position on the 'css grid'
+        convertArrayGridPosToCSSGridPos(buttonsData);
 
-   initCssGrid();
+        initCssGrid();
 
-   // draw buttons
-   //buttons.forEach((el) => {
-   //    spawnButton(el, el.start);
-   //});
+        // draw buttons
+        //buttons.forEach((el) => {
+        //    spawnButton(el, el.start);
+        //});
 
-   /* spawButton(0)
-   .then(() => {
-    for each button
-   })*/
+        /* spawButton(0)
+        .then(() => {
+            for each button
+        })*/
 
-   // we add all the buttons onto the css grid and store them in cssButtons
-   let cssButtons = [];
-   buttonsData.forEach((el) => {
-       cssButtons.push(spawnButton2(el, el.start));
-   });
+        // we add all the buttons onto the css grid and store them in cssButtons
+        let cssButtons = [];
+        buttonsData.forEach((el) => {
+            cssButtons.push(spawnButton2(el, el.start));
+        });
 
-   buttonPop(cssButtons, 0, () => {console.log('DONE')});
+        buttonPop(cssButtons, 0, () => {resolve()});
+    });
 }
 
 // a hardcoded animation pop to liven up the calculator
@@ -358,7 +357,7 @@ function buttonPop(cssButtons, currIndex, callback=undefined) {
                 nextCalled = true;
                 resolve();
             }
-        }, 4);
+        }, 8);
     })
     .then(() => {
         // recursively call this on the next button in the array
@@ -418,42 +417,59 @@ function makeEquation(lv) {
 function updateErrors() {
     errorCount++;
     errorsElement.innerText = 'Err ' + errorCount;
-    // TODO: animation
+    pingAnimation(errorsElement, 20);
 }
 
 // called when the player levels up
 function levelUp() {
     lvl++;
     levelElement.innerText = 'Lvl ' + lvl;
-    // TODO: animation
+    pingAnimation(levelElement, 20);
 }
 
 function endGame() {
-    //
-    printThankYou();
-    openMessagePre(usernameModal, true);
+
+    // restrict input to the calculator
+    allowInput = false;
+
+    // print thank you
+    printThankYou()
+    .then(() => {
+
+        // then wait for a second and open the username modal
+        setTimeout(()=> {
+            openMessagePre(usernameModal, true);
+        }, 800);
+    });
 }
 
 // creates a custom calculator that displays a 'Thank you" message
 function printThankYou() {
 
-    makeCalculator(1, undefined, 4, arrayGridSearchLinear);
+    // resolves once the "ThankYou4Playing" calculator is made
+    return new Promise((resolve, reject) => {
+        
+        makeCalculator(1, undefined, 4, arrayGridSearchLinear)
+        .then(() => {
+            resolve();
+        });
 
-    let children = Array.from(gridElement.children);
-
-    let btn = 0;
-
-    for(let w = 0; w < thanksForPlaying.length; w++) {
-
-        let word = thanksForPlaying[w];
-
-        for(let sub = 0; sub <  word.length; sub++) {
-
-            children[btn].innerText = word[sub];
-            children[btn].style.color = wordColors[w];
-            btn++;
+        let children = Array.from(gridElement.querySelectorAll('.button_container'));
+    
+        let btn = 0;
+    
+        for(let w = 0; w < thanksForPlaying.length; w++) {
+    
+            let word = thanksForPlaying[w];
+    
+            for(let sub = 0; sub <  word.length; sub++) {
+    
+                children[btn].innerText = word[sub];
+                children[btn].style.color = wordColors[w];
+                btn++;
+            }
         }
-    }
+    });
 }
 
 // sends score to the server
@@ -510,7 +526,7 @@ function sendScore(username, score) {
 
                             // on message's button click:
                             // close message
-                            closeMessage(e.target.parentNode)
+                            closeMessage(e.target.parentNode.parentNode)
                             .then(() => {
 
                                 // then reject
@@ -546,7 +562,7 @@ function sendScore(username, score) {
                         
                         // on click 'try again':
                         // close error message
-                        closeMessage(e.target.parentNode)
+                        closeMessage(e.target.parentNode.parentNode)
                         .then(() => {
 
                             // then call sendScore recursively
@@ -641,7 +657,7 @@ function showLeaderboard(userData) {
                     openMessage(['Error while retrieving leaderboard.'], ['message_pos_center', 'message_theme_error'], false, 'Try again', (e) => {
                     
                         // on 'Try again' click: close the error message
-                        closeMessage(e.target.parentNode)
+                        closeMessage(e.target.parentNode.parentNode)
                         .then(() => {
 
                             // then recursively call showLeaderboard
@@ -1065,22 +1081,27 @@ function spawnButton(btn, start) {
 
 function spawnButton2(btn, start) {
     let button = document.createElement('div');
+    let buttonContainer = document.createElement('div');
 
     button.classList.add('button');
+    buttonContainer.classList.add('button_container');
+
 
     button.style['grid-column'] = `${start.x} / span ${btn.width}`;
     button.style['grid-row'] = `${start.y} / span ${btn.height}`;
-    button.innerText = btn.symbol;
-    button.style['border-radius'] = `${btn.radius}%`;
-    button.dataset.symbol = btn.symbol;
+    buttonContainer.innerText = btn.symbol;
+    buttonContainer.style['border-radius'] = `${btn.radius}%`;
+    buttonContainer.dataset.symbol = btn.symbol;
 
-    button.style.width = '0%';
-    button.style.height = '0%';
-    button.style.opacity = '0';
+    buttonContainer.style.width = '0%';
+    buttonContainer.style.height = '0%';
+    buttonContainer.style.opacity = '0';
+
+    button.appendChild(buttonContainer)
 
     gridElement.appendChild(button);
     
-    return button;
+    return buttonContainer;
 }
 
 // clears out the css grid children
@@ -1155,6 +1176,154 @@ function checkUsername(username) {
     }
 
     return returnObject;
+}
+
+// plays the ping animation
+// since this animation can be spammed over and over instantly (when making errors
+// in fast sucession, we need to keep track of all the currently playing ping animations)
+function pingAnimation(element, maxRot, loops=3, startDir=1) {
+
+    // the direction we start the rotation at, also serves to keep track of current dir
+    startDir = startDir >= 0 ? 1 : -1;
+    // the time of a tick in miliseconds
+    let tick = 10;
+    // stores the current rotation value
+    let rotVal = 0;
+    // the velocity in degrees at wich we rotate the element each tick
+    let vel = 4;
+
+    // reset value to start value, in case this element was in the midst of a ping
+    element.style.transform = `rotate(0deg)`;
+
+    // each tick:
+    let interval = setInterval(() => {
+
+        // we set the rotation value to be current plus the velocity times the direction
+        rotVal += vel * startDir;
+        element.style.transform = `rotate(${rotVal}deg)`;
+
+        // here we check if the current rotation  value has reached the max rotation
+        // we want. If the direction is positive, we check if the value is higher
+        // than the positive max rotation, else we check if the value is lowe than
+        // then negative max rotation
+        if((startDir == 1 ? (rotVal >= maxRot) : (rotVal <= -maxRot))) {
+
+            // a loop means reaching the max rotation once
+            if(loops > 0) {
+
+                loops--;
+                // if we ran out of loops (0), then all that is left is to go to the
+                // start rotation, else we just continue as usual
+                maxRot = loops == 0 ? 0 : maxRot;
+
+                startDir = startDir * -1;
+            }
+            else {
+                // this runs when we have no more loops left and we have reached or
+                // gotten as close as possible to 0deg, so we set the value to 0deg
+                // exactly and call clearPingAnimation to handle the interval clearance
+                element.style.transform = `rotate(0deg)`;
+                clearInstantAnimation(element);
+            }
+        }
+    }, tick);
+
+    // this manages instant animations, allows us to call a ping animation on the same
+    // object multiple times safely. It lets us just reset the animation properly and
+    // gets rid of any previous intervals
+    addInstantAnimation(element, interval);
+}
+
+function clickAnimation(element, shrinkPercentage, tickIncrement) {
+
+    let tick = 10;
+    let currPercentage = 100;
+    let dir = 1;
+
+    let interval = setInterval(() => {
+
+        //  percentage
+        currPercentage -= tickIncrement * dir;
+        element.style.width = `${currPercentage}%`
+        element.style.height = `${currPercentage}%`
+
+        
+        if((dir == 1 ? (currPercentage <= shrinkPercentage) : (currPercentage >= 100))) {
+            
+            dir = dir * -1;
+
+            if(dir == 1) {
+                clearInstantAnimation(element);
+            }
+        }
+
+    }, tick);
+
+    addInstantAnimation(element, interval);
+}
+
+function countDownAnimation(element, startSizeRem, timeToZeroSize) {
+
+    let tick = 10;
+    element.style.fontSize = `${startSizeRem}rem`;
+    element.style.opacity = 1;
+
+    let decrementPerTick = startSizeRem / (timeToZeroSize / (tick / 1000));
+    console.log(decrementPerTick);
+
+    let interval = setInterval(() => {
+
+        startSizeRem -= decrementPerTick;
+
+        element.style.fontSize = `${startSizeRem}rem`;
+
+        if(startSizeRem <= 0) {
+
+            element.style.opacity = 0;
+            clearInstantAnimation(element);
+        }
+
+    }, tick);
+
+    addInstantAnimation(element, interval);
+}
+
+function addInstantAnimation(element, interval) {
+
+    let added = false;
+    // for each ping object
+    for(let i = 0; i < instantAnimations.length; i++) {
+        
+        // if the ping subject matches
+        if(instantAnimations[i].subject == element) {
+            // clear current interval and set the interval var to the new interval
+            clearInterval(instantAnimations[i].interval);
+            instantAnimations[i].interval = interval;
+            added = true;
+            console.log('UPDATING: ' + interval);
+            break;
+        }
+    }
+
+    // if the element was not found already, then we need to add it as a new one
+    if(!added) {
+        instantAnimations.push({subject: element, interval: interval});
+        console.log('ADDING: ' + interval);
+    }
+}
+
+function clearInstantAnimation(element) {
+
+    for(let i = 0; i < instantAnimations.length; i++) {
+
+        if(instantAnimations[i].subject == element) {
+
+            clearInterval(instantAnimations[i].interval);
+            console.log('CLEARING: ' + instantAnimations[i].interval);
+            instantAnimations.splice(i, 1);
+            return;
+        }
+    }
 }
 
 // ----------------------------------------------------------       DEBUG
