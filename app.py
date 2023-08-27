@@ -60,8 +60,8 @@ def send_score():
         return jsonify({"message": "duplicate"}), 200
 
     # get country code for direct client ip
-    # country_code = get_country_code(request.remote_addr)
-    country_code = get_country_code("4.106.55.210")
+    country_code = get_country_code(request.remote_addr)
+    #country_code = get_country_code("4.106.55.210")
 
 
     # Insert new score into leaderboard table

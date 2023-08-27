@@ -44,7 +44,7 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = /*99.99*/ 30 * 1000;
+var currentTime = 60.0 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
@@ -62,8 +62,7 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     // Opens the welcome/instructions message
-    printThankYou();
-    //openMessagePre(introModal, true);
+    openMessagePre(introModal, true);
 });
 
 // triggers each time the player presses a button on the calculator
@@ -286,27 +285,19 @@ function makeCalculator(lv, sym=undefined, gridLen=32, searchMethod=arrayGridSea
 
         initCssGrid();
 
-        // draw buttons
-        //buttons.forEach((el) => {
-        //    spawnButton(el, el.start);
-        //});
-
-        /* spawButton(0)
-        .then(() => {
-            for each button
-        })*/
-
         // we add all the buttons onto the css grid and store them in cssButtons
         let cssButtons = [];
         buttonsData.forEach((el) => {
-            cssButtons.push(spawnButton2(el, el.start));
+            cssButtons.push(spawnButton(el, el.start));
         });
 
+        // button pop in animation, we resolve after its done to signal that the calculator
+        // has been created
         buttonPop(cssButtons, 0, () => {resolve()});
     });
 }
 
-// a hardcoded animation pop to liven up the calculator
+// an animation pop to liven up the calculator
 // calls callback once all the buttons are done spawning
 function buttonPop(cssButtons, currIndex, callback=undefined) {
 
@@ -1066,20 +1057,6 @@ function convertArrayGridPosToCSSGridPos(buttons) {
 // given a button, a start position in a 1 based grid and a positive width and height,
 // this func will add the button to the page's css grid
 function spawnButton(btn, start) {
-    let buttonElement = document.createElement('div');
-
-    buttonElement.classList.add('button');
-
-    buttonElement.style['grid-column'] = `${start.x} / span ${btn.width}`;
-    buttonElement.style['grid-row'] = `${start.y} / span ${btn.height}`;
-    buttonElement.innerText = btn.symbol;
-    buttonElement.style['border-radius'] = `${btn.radius}%`;
-    buttonElement.dataset.symbol = btn.symbol;
-
-    gridElement.appendChild(buttonElement);
-}
-
-function spawnButton2(btn, start) {
     let button = document.createElement('div');
     let buttonContainer = document.createElement('div');
 
@@ -1177,6 +1154,8 @@ function checkUsername(username) {
 
     return returnObject;
 }
+
+// ----------------------------------------------------------       ANIMATIONS
 
 // plays the ping animation
 // since this animation can be spammed over and over instantly (when making errors
@@ -1288,6 +1267,7 @@ function countDownAnimation(element, startSizeRem, timeToZeroSize) {
     addInstantAnimation(element, interval);
 }
 
+// links an interval to an element and keeps track of it
 function addInstantAnimation(element, interval) {
 
     let added = false;
@@ -1312,6 +1292,7 @@ function addInstantAnimation(element, interval) {
     }
 }
 
+// given an element, clears the interval linked to it
 function clearInstantAnimation(element) {
 
     for(let i = 0; i < instantAnimations.length; i++) {
@@ -1325,11 +1306,3 @@ function clearInstantAnimation(element) {
         }
     }
 }
-
-// ----------------------------------------------------------       DEBUG
-
-window.addEventListener('resize', (event) => {
-
-    console.clear();
-    console.log(window.innerWidth / window.innerHeight);
-});
