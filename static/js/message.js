@@ -17,7 +17,7 @@ function init() {
 }
 
 // creates a message modal
-function createMessageModal(messageLines, messageStyles=['message_pos_center', 'message_theme_default'], buttonText='', buttonCallBack=undefined) {
+function createMessageModal(messageLines, button=undefined, isError=false) {
 
     // set up message line elements
     let lines = [];
@@ -27,53 +27,53 @@ function createMessageModal(messageLines, messageStyles=['message_pos_center', '
         lines[index].classList.add('message_line');
     });
 
-    let buttonFlexContainer = document.createElement('div');
-    buttonFlexContainer.classList.add('message_button_flex');
-    
-    // set up message button (if applicable)
-    let buttonElement;
-    if(buttonCallBack) {
-        buttonElement = document.createElement('button');
-        buttonElement.innerText = buttonText;
-        buttonElement.classList.add('message_button');
-        buttonElement.addEventListener('click', buttonCallBack);
-    }
     
     // set up dialog element
     let dialogElement = document.createElement('dialog');
+    dialogElement.classList.add('message_shape');
+
     lines.forEach((element) => {
         dialogElement.appendChild(element);
     });
 
-    if(buttonCallBack) {
-        buttonFlexContainer.appendChild(buttonElement);
-        dialogElement.appendChild(buttonFlexContainer);
+    // if its an error message, add error themes, else add default ones
+    if(isError) {
+        dialogElement.classList.add('message_theme_error');
+    }
+    else {
+        dialogElement.classList.add('message_theme_default');
+    }
+
+    // set up message button (if applicable)
+    if(button) {
+        let buttonContainer = document.createElement('div');
+        let buttonElement = document.createElement('button');
+
+        buttonContainer.classList.add('message_button_container');
+        buttonElement.classList.add('message_button_shape');
+
+        if(isError) {
+            buttonElement.classList.add('message_button_theme_error');
+        } else {
+            buttonElement.classList.add('message_button_theme_default');
+        }
+
+        buttonElement.innerText = button.text;
+        buttonElement.addEventListener('click', button.callback);
+        
+        buttonContainer.appendChild(buttonElement);
+        dialogElement.appendChild(buttonContainer);
     }
     
-    dialogElement.classList.add('message_general');
-
-    /*
-    if(isError) {
-        dialogElement.classList.add('message_dialog_error_theme');
-    }
-    */
-   messageStyles.forEach(style => {
-    dialogElement.classList.add(style);
-   });
-
     document.body.appendChild(dialogElement);
 
     return dialogElement;
 }
 
 // creates and opens a message (modal)
-export function openMessage(messageLines, messageStyles=undefined, callBackdrop=false, buttonText='', buttonCallback=undefined) {
+export function openMessage(messageLines, button=undefined, isError=false, callBackdrop=false) {
 
-    if(messageStyles === undefined) {
-        messageStyles = ['message_pos_center', 'message_theme_default']
-    }
-
-    const messageModal = createMessageModal(messageLines, messageStyles, buttonText, buttonCallback);
+    const messageModal = createMessageModal(messageLines, button, isError);
 
     return openMessagePre(messageModal, callBackdrop);
 

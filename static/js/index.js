@@ -44,7 +44,7 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = 60.0 * 1000;
+var currentTime = 1.0 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
@@ -61,7 +61,6 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 // start point
 document.addEventListener('DOMContentLoaded', (event) => {
 
-    // Opens the welcome/instructions message
     openMessagePre(introModal, true);
 });
 
@@ -135,16 +134,20 @@ usernameForm.addEventListener('submit', (event) => {
     // if name is invalid, send mesage to the user with reason.
     if(!checkObject.pass) {
 
+        // button object
+        let wrongUsernameButton = {
+            text: 'OK',
+            callback: (e) => {
+                closeMessage(e.target.parentNode.parentNode)
+                .then(() => {
+                    // enable input field again
+                    usernameForm.username.disabled = false;
+                });
+            }
+        };
+        
         // open an error message and inform user of error
-        openMessage(checkObject.errorArray, ['message_pos_center', 'message_theme_error'], false, 'OK', (e) => {
-            
-            // on click, close the erro window
-            closeMessage(e.target.parentNode.parentNode)
-            .then(() => {
-                // enable input field again
-                usernameForm.username.disabled = false;
-            });
-        });
+        openMessage(checkObject.errorArray, wrongUsernameButton, true);
 
         return;
     }
@@ -512,18 +515,23 @@ function sendScore(username, score) {
                     closeMessage(loadingMsg)
                     .then(()=> {
 
+                        // button object
+                        let usernameTakenButton = {
+                            text: 'OK',
+                            callback: (e) => {
+                                closeMessage(e.target.parentNode.parentNode)
+                                .then(() => {
+    
+                                    // then reject
+
+                                    console.log('ererere');
+                                    reject(new Error(responseJson.message));
+                                });                                
+                            }
+                        };
+
                         // then open msg telling user to use different name
-                        openMessage(['There is already a record with this username and score', 'Please select another username'], undefined, false, 'Ok', (e) => {
-
-                            // on message's button click:
-                            // close message
-                            closeMessage(e.target.parentNode.parentNode)
-                            .then(() => {
-
-                                // then reject
-                                reject(new Error(responseJson.message));
-                            });
-                        });
+                        openMessage(['There is already a record with this username and score', 'Please select another username'], usernameTakenButton, true);
                     })
                 }
                 else {
@@ -548,23 +556,29 @@ function sendScore(username, score) {
                 closeMessage(loadingMsg)
                 .then(() => {
 
+                    // buton object to be used with the error message we will open next
+                    let unknownErrorButton = {
+                        text: 'OK',
+                        callback: (e) => {
+                            closeMessage(e.target.parentNode.parentNode)
+                            .then(() => {
+    
+                                // then call sendScore recursively
+                                sendScore(username, score)
+                                .then((scoreData) => {
+    
+                                    // then once the recursive sendScore has been solved, resolve this one
+                                    resolve(scoreData);
+                                })
+                                .catch(err => {
+                                    reject(new Error(err.message));
+                                });
+                            });                            
+                        }
+                    };
+
                     // then open an error message with the option to try again
-                    openMessage(['Oops !', 'An error acurred while sending the score to the server'], ['message_pos_center', 'message_theme_error'],false, 'Try again',  (e) => {
-                        
-                        // on click 'try again':
-                        // close error message
-                        closeMessage(e.target.parentNode.parentNode)
-                        .then(() => {
-
-                            // then call sendScore recursively
-                            sendScore(username, score)
-                            .then((scoreData) => {
-
-                                // then once the recursive sendScore has been solved, resolve this one
-                                resolve(scoreData);
-                            });
-                        });
-                    });
+                    openMessage(['Oops !', 'An error acurred while sending the score to the server'], unknownErrorButton, true);
                 });
             });
         });
@@ -644,22 +658,27 @@ function showLeaderboard(userData) {
                 closeMessage(loadingMsg)
                 .then(() => {
 
-                    // then open an error message with a 'Try again' option
-                    openMessage(['Error while retrieving leaderboard.'], ['message_pos_center', 'message_theme_error'], false, 'Try again', (e) => {
-                    
-                        // on 'Try again' click: close the error message
-                        closeMessage(e.target.parentNode.parentNode)
-                        .then(() => {
-
-                            // then recursively call showLeaderboard
-                            showLeaderboard(userData)
+                    // button object
+                    let leaderboardErrorButton = {
+                        text: 'Try again',
+                        callback: (e) => {
+                            // on 'Try again' click: close the error message
+                            closeMessage(e.target.parentNode.parentNode)
                             .then(() => {
 
-                                // then (once leaderboard is displayed), resolve
-                                resolve();
+                                // then recursively call showLeaderboard
+                                showLeaderboard(userData)
+                                .then(() => {
+
+                                    // then (once leaderboard is displayed), resolve
+                                    resolve();
+                                });
                             });
-                        });
-                    });
+                        }
+                    };
+
+                    // then open an error message with a 'Try again' option
+                    openMessage(['Error while retrieving leaderboard.'], leaderboardErrorButton, true);
                 });
             });
         });

@@ -8,34 +8,41 @@ body {
 #header {
     display: flex;
     justify-content: space-between;
+
     height: 4rem;
 }
 /*                                                    errors */
 #errors {
-    font-family: 'Tektur', cursive;
-    font-size: 2rem;
-    color: rgb(156, 49, 49);
     margin-left: 2rem;
     margin-top: 0.5rem;
+
+    font-family: 'Tektur', cursive;
+    font-size: 2rem;
+
+    color: rgb(156, 49, 49);
 }
 /*                                                    timer */
 #timer {
     display: flex;
+
     width: 8rem;
 }
 
 #timer_container {
     font-family: 'Tektur', cursive;
     font-size: 3rem;
+
     color: grey;
 }
 /*                                                    level */
 #level {
     font-family: 'Tektur', cursive;
     font-size: 2rem;
-    color: rgb(81, 129, 97);
+
     margin-right: 2rem;
     margin-top: 0.5rem;
+
+    color: rgb(81, 129, 97);
 }
 /*-----------------------------------------------------------------------------------*/
 
@@ -43,6 +50,7 @@ body {
 #equation {
     display: flex;
     justify-content: center;
+
     background-color: rgb(243, 243, 243);
 }
 
@@ -68,9 +76,9 @@ body {
     width: 100vmin;
     height: 80vmin;
 
+    border-radius: 0%;
     background-color: aliceblue;
     border: solid gainsboro 1px;
-    border-radius: 0%;
 }
 /*                                                                      screen */
 
@@ -79,9 +87,9 @@ body {
     justify-content: center;
     align-items: center;
 
+    flex-shrink: 0;
     width: 100%;
     height: 20%;
-    flex-shrink: 0;
 
     background-color: rgb(235, 235, 235);
 }
@@ -100,7 +108,7 @@ body {
     color:rgb(95, 94, 94);
 }
 
-/*                                                                      buttons */
+/*                                                              calculator buttons */
 #buttons {
     display: grid;
 
@@ -108,8 +116,8 @@ body {
     min-height: 80%;
     max-height: 80%;
 
-    background-color: rgb(129, 129, 138);
     border: solid gainsboro 1px;
+    background-color: rgb(129, 129, 138);
 }
 
 .button {
@@ -119,29 +127,29 @@ body {
 }
 
 .button_container {
-    border: solid rgb(0, 0, 0) 1px;
-
     text-align: center;
     user-select: none;
-
-    background-color: rgb(150, 199, 201);
-
+    
     font-size: 3rem;
+    
+    border: solid rgb(0, 0, 0) 1px;
     color:rgb(78, 78, 78);
+    background-color: rgb(150, 199, 201);
 }
 /*-----------------------------------------------------------------------------------*/
 
-/*                                                                      intro modal */
+/*                                                                      Intro modal */
 #modal_intro {
     width: 100%;
-    height: 40%;
+    height: 100%;
+    max-height: 25rem;
 }
 
 #modal_intro::backdrop {
     opacity: 0;
 }
 
-#intro_container {
+#intro_container_a { /* contA */
     display: flex;
     justify-content: space-between;
 
@@ -149,69 +157,61 @@ body {
     height: 100%;
 }
 
-#intro_message {
+#intro_container_b { /* contB */
     display: flex;
     flex-direction: column;
-    justify-content: space-around;
+    justify-content: space-between;
 
     margin-left: 2%;
     margin-right: 2%;
+    margin-top: 2%;
+    margin-bottom: 2%;
+
+    min-height: 0;
 }
 
 #intro_image {
-    max-width: 25%;
-    object-fit: contain;
+    object-fit: scale-down;
+    max-width: 40%;
 }
 
 #intro_message_text {
     font-size: 0.9rem;
+    overflow: scroll;
 }
 
-#intro_message_button {
-    font-size: 2rem;
-    
+.button_general_shape {
+    font-size: 1.5rem;
+}
+
+.button_general_theme {
+    background-color: rgb(220, 234, 245);    
     border: solid black 1px;
     border-radius: 2px;
     box-shadow: none;
-
-    background-color: rgb(220, 234, 245);
-}
+ }
 
 /* on portrait-ish devices: */
 @media screen and (max-aspect-ratio: 0.9) {
 
-    /* make the intro modal height higher */
     #modal_intro {
-        height: 80%;
+        max-height: 95%;
     }
 
-    /* the intro container who holds the contents of the modal will now be ordered 
-    as a column */
-    #intro_container {
+    #intro_container_a {
         flex-direction: column;
-        justify-content: space-around;
+        overflow: visible;
         align-items: center;
     }
 
-    /* the intro image's size will now change its relative sizing rules based on the
-    new shape of the modal */
     #intro_image {
         max-width: 100%;
         max-height: 40%;
     }
 
-    /* the message container which holds the text and the button will vertically center
-    its children */
-    #intro_message {
+    #intro_container_b {
         align-items: center;
     }
-
-    /* the button will be bigger since we asume this is most likely a mobile device */
-    #intro_message_button {
-        min-height: 30%;
-        width: 90%;
-    }
-    
 }
 /*-----------------------------------------------------------------------------------*/
 
@@ -301,10 +301,6 @@ body {
     background-color: transparent;
 }
 
-.message_pos_center {
-    margin-top: 15%;
-}
-
 .message_theme_default {
 
     background-color: rgb(231, 236, 240);
@@ -318,12 +314,12 @@ body {
 
 .message_line {
     text-align: center;
-    margin: 1rem;
+    /*margin: 1rem;*/
     margin-left: 1rem;
     margin-right: 1rem;
 }
 
-.message_button_flex {
+.message_button_container {
     display: flex;
     justify-content: center;
     width: 100%;
