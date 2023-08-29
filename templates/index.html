@@ -14,24 +14,26 @@
         <!-- the backdrop that is used to shade the background black as a message is open -->
         <div id="backdrop"></div>
 
-        <!-- page rows -->
-        <div id="header">
-            <div id="errors">
-                Err
-            </div>
-            <div id="timer">
-                <div id="timer_container">
-                    99:99
+        <!-- main elements -->
+        <div id="user_interface">
+            <div id="header">
+                <div id="errors">
+                    Err
+                </div>
+                <div id="timer">
+                    <div id="timer_container">
+                        99:99
+                    </div>
+                </div>
+                <div id="level">
+                    Lvl
                 </div>
             </div>
-            <div id="level">
-                Lvl
-            </div>
-        </div>
-
-        <div id="equation">
-            <div id="equation_container">
-                ? ? ?
+    
+            <div id="equation">
+                <div id="equation_container">
+                    ? ? ?
+                </div>
             </div>
         </div>
 
@@ -48,7 +50,7 @@
         </div>
 
         <!-- windows -->
-        <dialog id="modal_intro" class="message_general message_pos_center message_theme_default">
+        <dialog id="modal_intro" class="message_general message_theme_default">
             <div id="intro_container_a">
                 <img id="intro_image" src="/static/images/ph_image_user.jpg">
                 <div id="intro_container_b">
@@ -70,7 +72,7 @@
             </div>
         </dialog>
 
-        <dialog id="modal_username" class="message_general message_pos_center message_theme_default">
+        <dialog id="modal_username" class="message_general message_theme_default">
             <div id="username_container">
                 <div id="username_header">
                     - enter a name -
@@ -81,7 +83,7 @@
             </div>
         </dialog>
 
-        <dialog id="modal_leaderboard" class="message_general message_pos_center message_theme_default">
+        <dialog id="modal_leaderboard" class="message_general message_theme_default">
             <div id="leaderboard_container">
                 <p class="leaderboard_text">Global leaderboard</p>
                 <div class="leaderboard_header_container">
@@ -99,7 +101,7 @@
                     
                 </div>
                 <form id="playagain_form" action="/" method="get">
-                    <button type="submit" id="playagain_button">Play again</button>
+                    <button type="submit" id="playagain_button" class="button_general_shape button_general_theme">Play again</button>
                 </form>
             </div>
         </dialog>

@@ -44,7 +44,7 @@ var equation = '';
 // every how many levels should we increase the equation complexity
 var equationMult = 4;
 // time remaining in miliseconds
-var currentTime = 1.0 * 1000;
+var currentTime = 99.99 * 1000;
 // current level
 var lvl = 0;
 // counts the player's mistakes
@@ -62,6 +62,14 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     openMessagePre(introModal, true);
+    return;
+    
+    openMessagePre(usernameModal, true);
+    openMessage(['sdafgdsgdgsdgsdg', 'dsgsdgsdhfdhfsdhfd'], {
+        text: 'Sample',
+        callback: undefined
+    }, true);
+
 });
 
 // triggers each time the player presses a button on the calculator

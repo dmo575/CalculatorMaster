@@ -30,7 +30,7 @@ function createMessageModal(messageLines, button=undefined, isError=false) {
     
     // set up dialog element
     let dialogElement = document.createElement('dialog');
-    dialogElement.classList.add('message_shape');
+    dialogElement.classList.add('message_general');
 
     lines.forEach((element) => {
         dialogElement.appendChild(element);
@@ -50,12 +50,13 @@ function createMessageModal(messageLines, button=undefined, isError=false) {
         let buttonElement = document.createElement('button');
 
         buttonContainer.classList.add('message_button_container');
-        buttonElement.classList.add('message_button_shape');
+        buttonElement.classList.add('button_general_shape');
 
         if(isError) {
-            buttonElement.classList.add('message_button_theme_error');
+            buttonElement.classList.add('button_error_theme');
         } else {
-            buttonElement.classList.add('message_button_theme_default');
+            //buttonElement.classList.add('message_button_theme_default');
+            buttonElement.classList.add('button_general_theme');
         }
 
         buttonElement.innerText = button.text;
