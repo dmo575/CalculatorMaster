@@ -87,10 +87,10 @@ export function openMessagePre(messageModal, callBackdrop=false) {
         
         if(callBackdrop) {
             
-            backdropFade2(1, backdropFadeDuration)
+            backdropFade(1, backdropFadeDuration)
             .then(() => {
     
-                modalPop2(messageModal, 1, messagePopDuration, messageFadeDuration)
+                modalPop(messageModal, 1, messagePopDuration, messageFadeDuration)
                 .then(() => {
                     resolve(messageModal);
                 });
@@ -98,7 +98,7 @@ export function openMessagePre(messageModal, callBackdrop=false) {
         }
         else {
 
-            modalPop2(messageModal, 1, messagePopDuration, messageFadeDuration)
+            modalPop(messageModal, 1, messagePopDuration, messageFadeDuration)
             .then(() => {
                 resolve(messageModal);
             });
@@ -115,7 +115,7 @@ export function closeMessage(messageElement, callBackdrop=false, delOnClose=true
     const promise = new Promise((resolve, reject) => {
 
         // pop out the message modal inmediately
-        modalPop2(messageElement, -1, messagePopDuration, messageFadeDuration)
+        modalPop(messageElement, -1, messagePopDuration, messageFadeDuration)
         .then(()=> {
 
             if(delOnClose) {
@@ -125,7 +125,7 @@ export function closeMessage(messageElement, callBackdrop=false, delOnClose=true
 
             if(callBackdrop) {
 
-                backdropFade2(-1, backdropFadeDuration)
+                backdropFade(-1, backdropFadeDuration)
                 .then(() => {
                     resolve();
                 });
@@ -140,7 +140,7 @@ export function closeMessage(messageElement, callBackdrop=false, delOnClose=true
 }
 
 // modal pop animation
-function modalPop2(modalElement, dir, popTime, fadeTime, delOnFinish=false) {
+function modalPop(modalElement, dir, popTime, fadeTime) {
 
     const promise = new Promise((resolve, reject) => {
 
@@ -181,6 +181,14 @@ function modalPop2(modalElement, dir, popTime, fadeTime, delOnFinish=false) {
         let timeInterval = 10;
         // element's children
         let children = Array.from(modalElement.children);
+
+        // save the min width and height of the modal and set them to zero so we can
+        // modify them during the animation
+        let minWidth = modalElement.style.minWidth;
+        let minHeight = modalElement.style.minHeight;
+        modalElement.style.minWidth = '0%';
+        modalElement.style.minHeight = '0%';
+
         // gets computed size of the element, since its been opened already, units will be px
         let temp = window.getComputedStyle(modalElement).width;
         let modalOriginalWidth = parseInt(temp.slice(0, temp.length - 2));
@@ -294,11 +302,9 @@ function modalPop2(modalElement, dir, popTime, fadeTime, delOnFinish=false) {
                     // the user changes the aspect ratio (% and px)
                     modalElement.removeAttribute('style');
 
-                    // if the modal is done popping out and we want to delete it
-                    /*
-                    if(delOnFinish && dir == -1) {
-                        document.body.removeChild(modalElement);
-                    }*/
+                    // restore modal's min width and height
+                    modalElement.style.minWidth = minWidth;
+                    modalElement.style.minHeight = minHeight;
 
                     tasksCompleted++;
                     if(tasksCompleted == 2) {
@@ -316,7 +322,7 @@ function modalPop2(modalElement, dir, popTime, fadeTime, delOnFinish=false) {
     return promise;
 }
 
-function backdropFade2(dir, duration) {
+function backdropFade(dir, duration) {
 
     const promise = new Promise((resolve, reject) => {
 
