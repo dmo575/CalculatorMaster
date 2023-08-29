@@ -1267,7 +1267,6 @@ function countDownAnimation(element, startSizeRem, timeToZeroSize) {
     element.style.opacity = 1;
 
     let decrementPerTick = startSizeRem / (timeToZeroSize / (tick / 1000));
-    console.log(decrementPerTick);
 
     let interval = setInterval(() => {
 
@@ -1295,19 +1294,19 @@ function addInstantAnimation(element, interval) {
         
         // if the ping subject matches
         if(instantAnimations[i].subject == element) {
+            // UPDATING
             // clear current interval and set the interval var to the new interval
             clearInterval(instantAnimations[i].interval);
             instantAnimations[i].interval = interval;
             added = true;
-            console.log('UPDATING: ' + interval);
             break;
         }
     }
 
     // if the element was not found already, then we need to add it as a new one
     if(!added) {
+        // ADDING
         instantAnimations.push({subject: element, interval: interval});
-        console.log('ADDING: ' + interval);
     }
 }
 
@@ -1318,8 +1317,8 @@ function clearInstantAnimation(element) {
 
         if(instantAnimations[i].subject == element) {
 
+            // CLEARING
             clearInterval(instantAnimations[i].interval);
-            console.log('CLEARING: ' + instantAnimations[i].interval);
             instantAnimations.splice(i, 1);
             return;
         }
