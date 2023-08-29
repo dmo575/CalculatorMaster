@@ -1,7 +1,7 @@
 import Button from './button.js';
 import vec from './vec.js';
 import { openMessage, closeMessage, openMessagePre } from './message.js';
-import { printGridArray, printGridButton } from './debug.js';
+//import { printGridArray, printGridButton } from './debug.js';
 
 // stores the button layout in the form of a 2D JS array
 const arrayGrid = [];
@@ -62,14 +62,6 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 document.addEventListener('DOMContentLoaded', (event) => {
 
     openMessagePre(introModal, true);
-    return;
-    
-    openMessagePre(usernameModal, true);
-    openMessage(['sdafgdsgdgsdgsdg', 'dsgsdgsdhfdhfsdhfd'], {
-        text: 'Sample',
-        callback: undefined
-    }, true);
-
 });
 
 // triggers each time the player presses a button on the calculator

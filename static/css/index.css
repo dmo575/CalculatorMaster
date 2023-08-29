@@ -1,12 +1,13 @@
 /*                                                                      body */
 body {
-    margin: 0px;
     display: flex;
     flex-direction: column;
+    
+    margin: 0px;
 }
 
 
-/* on landscape-ish devices: */
+/* on small landscape-ish devices: */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
 
     body {
@@ -57,15 +58,16 @@ body {
 }
 /*                                                    level */
 #level {
-    font-family: 'Tektur', cursive;
-    font-size: 2em;
-
     margin-right: 2rem;
     margin-top: 0.5rem;
+
+    font-family: 'Tektur', cursive;
+    font-size: 2em;
 
     color: rgb(81, 129, 97);
 }
 
+/* portrait devices */
 @media screen and (max-aspect-ratio: 0.9) {
     #header {
         font-size: 0.9rem;
@@ -80,6 +82,7 @@ body {
     }
 }
 
+/* small landscape devices */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
     #header {
         flex-direction: column;
@@ -114,6 +117,7 @@ body {
     font-size: 3rem;
 }
 
+/* portrait */
 @media screen and (max-aspect-ratio: 0.9) {
 
     #equation_container {
@@ -121,9 +125,11 @@ body {
     }
 }
 
+/* small landscape */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
     #equation {
         height: 50%;
+
         max-height: none;
         align-items: center;
     }
@@ -140,7 +146,6 @@ body {
     display: flex;
     justify-content: center;
 
-    /* PC measures */
     width: 100%;
     height: calc(100vmin - 8rem);
 }
@@ -151,7 +156,6 @@ body {
     justify-content: flex-start;
     align-items: center;
 
-    /* PC */
     width: 50vmax;
     max-width: 100%;
     height: calc(100% - 2rem);
@@ -161,7 +165,7 @@ body {
     border: solid gainsboro 1px;
 }
 
-/* on portrait-ish devices: */
+/* portrait */
 @media screen and (max-aspect-ratio: 0.9) {
     #calculator {
         height: calc(100vmax - 7rem);
@@ -174,7 +178,7 @@ body {
     }
 }
 
-/* on landscape-ish devices: */
+/* small landscape */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
     #calculator {
         height: 99vmin;
@@ -302,7 +306,7 @@ body {
     overflow: scroll;
 }
 
-/* on portrait-ish devices: */
+/* portrait */
 @media screen and (max-aspect-ratio: 0.9) {
 
     #modal_intro {
@@ -326,6 +330,7 @@ body {
     }
 }
 
+/* small landscape */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
 
     #modal_intro {
@@ -356,6 +361,7 @@ body {
     box-shadow: none;
 }
 
+/* portrait */
 @media screen and (max-aspect-ratio: 0.9) {
 
     .button_general_shape {
@@ -363,6 +369,7 @@ body {
     }
 }
 
+/* small landscape */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
 
     .button_general_shape {
@@ -428,12 +435,14 @@ body {
     border-bottom: 1px black solid;
 }
 
+/* portrait */
 @media screen and (max-aspect-ratio: 0.9) {
     #modal_username {
         width: 100%;
     }
 }
 
+/*small landscape*/
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
     #modal_username {
         width: 100%;
@@ -445,8 +454,10 @@ body {
 
 #backdrop {
     position: fixed;
+
     width: 100%;
     height: 100%;
+
     background-color: rgba(51, 51, 51, 0.664);
     opacity: 0;
 }
@@ -464,18 +475,17 @@ body {
 }
 
 .message_theme_default {
-
     background-color: rgb(231, 236, 240);
 }
 
 .message_theme_error {
-
     border: 1px solid red;
     background-color: rgba(255, 215, 215, 0.98);
 }
 
 .message_line {
     text-align: center;
+
     margin-left: 1rem;
     margin-right: 1rem;
 }
@@ -483,6 +493,7 @@ body {
 .message_button_container {
     display: flex;
     justify-content: center;
+
     width: 100%;
 }
 
@@ -523,13 +534,13 @@ body {
     margin-bottom: 1px;
 
     border-bottom: 1px solid rgba(128, 128, 128, 0.397);
-
     background-color: rgba(55, 91, 97, 0.096);
 }
 
 .leaderboard_header_container {
     display: flex;
     justify-content: space-between;
+    
     margin: 0;
     margin-right: 2rem;
     margin-left: 2rem;
@@ -552,14 +563,14 @@ body {
 }
 
 .item_component {
-    margin: 0;
-    width: 33%;
     overflow-x: hidden;
     white-space: nowrap;
+
+    width: 33%;
+    margin: 0;
 }
 
 .leaderboard_item_component {
-
     padding-left: 2rem;
     padding-right: 2rem;
     margin: 0;
@@ -589,6 +600,7 @@ body {
     margin-bottom: 1rem;
 }
 
+/* portrait */
 @media screen and (max-aspect-ratio: 0.9) {
     #modal_leaderboard {
         height: 100vmax;
@@ -618,6 +630,7 @@ body {
     }
 }
 
+/* small landscape */
 @media screen and (min-aspect-ratio: 1.6) and (max-height: 30em) {
     #modal_leaderboard {
         width: 100%;
