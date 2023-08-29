@@ -61,7 +61,6 @@ const pladeholderFlagImgSrc = '/static/images/world.png';
 // start point
 document.addEventListener('DOMContentLoaded', (event) => {
 
-    document.documentElement.requestFullscreen();
     openMessagePre(introModal, true);
 });
 
